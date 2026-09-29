@@ -36,12 +36,25 @@ We use the annual datasets **2017–2024** (~7.8 GB of CSV, ~48.5 M cleaned rows
 ## 2. Computing environment
 
 - **Local machine**, running everything under **WSL2 (Ubuntu)** on Windows.
-- 16 logical cores, 15 GB RAM, ~900 GB free disk.
+- 32 GB host RAM; WSL2 configured to expose 24 GB (see note below),
+  16 logical cores, ~900 GB free disk.
 - Python 3.12, OpenJDK 21, **PySpark 3.5.3** in `local[*]` mode
-  (single-node, all cores). Driver memory 11 GB.
+  (single-node, all cores). Spark driver memory 20 GB for training.
 
-No cluster is required; the pipeline is tuned to run comfortably on one
-machine. It also runs unchanged on a single Databricks/Dataproc node.
+No cluster is required for the pipeline as shipped; it is tuned to run on one
+machine and also runs unchanged on a single Databricks/Dataproc node. Task 2
+caps the training set (see `--max-train-rows`) so it fits in local memory; the
+**full exploded dataset is intended for a multi-node cluster** (future work).
+
+> **WSL2 memory note.** WSL2 defaults to ~50 % of host RAM, which was too tight
+> for the GBT fit. We raised it via `C:\Users\<you>\.wslconfig`:
+> ```ini
+> [wsl2]
+> memory=24GB
+> swap=8GB
+> processors=16
+> ```
+> then `wsl --shutdown` and reopen the terminal to apply.
 
 ---
 
@@ -134,8 +147,11 @@ quantiles, and heavy-rain days.
 
 # 4b. Train + evaluate the model (temporal split: train < test-year)
 ./.venv/bin/python src/task2_train.py --model gbt --test-year 2024
-#   quick iteration on a subsample:
-./.venv/bin/python src/task2_train.py --model gbt --sample-fraction 0.1
+#   faster iteration on a subsample of base rows:
+./.venv/bin/python src/task2_train.py --model gbt --sample-fraction 0.2
+#   logistic-regression baseline (overwrites the saved model, so run the
+#   model you want to keep LAST):
+./.venv/bin/python src/task2_train.py --model logreg --test-year 2024
 
 # 4c. Predict a single query
 ./.venv/bin/python src/task2_predict.py \
@@ -144,6 +160,19 @@ quantiles, and heavy-rain days.
 
 Training saves the fitted pipeline to `models/rainfall_model` and metrics to
 `models/model_metadata.json` + `output/tables/model_metrics_*.csv`.
+
+**Memory / scale controls for Task 2.** Treating the threshold as a feature
+multiplies the base rows by the number of candidate thresholds (5×), so the
+exploded training set can reach hundreds of millions of rows. To keep the GBT
+fit within a single machine:
+
+- `--max-train-rows N` (default `8_000_000`) uniformly downsamples the exploded
+  training rows; set `0` to disable (only sensible on a cluster).
+- `--sample-fraction F` subsamples base rows before the explode.
+- Training frames use `MEMORY_AND_DISK` persistence so Spark spills instead of
+  failing when memory is tight.
+
+Example for a tighter machine: `--max-train-rows 4000000`.
 
 ---
 
@@ -164,12 +193,20 @@ answers any threshold rather than one model per threshold. For each
 station-timestamp we build leakage-free features — cyclical hour/month,
 weekend & monsoon flags, station identity + location, and recent-rainfall
 context (rolling 30/60/180-min sums, last reading, minutes-since-rain) — and
-generate one labelled example per candidate threshold. The label is whether the
-true next-30-min accumulation exceeds that threshold. Model: Gradient-Boosted
-Trees (with a Logistic Regression baseline) via a Spark ML `Pipeline`
-(`StringIndexer` → `OneHotEncoder` → `VectorAssembler` → classifier), evaluated
-with a **temporal** train/test split (AUC-ROC, AUC-PR, accuracy, F1, and
-per-threshold AUC).
+generate one labelled example per candidate threshold (default
+`0.2, 1, 2, 5, 10` mm). The label is whether the true next-30-min accumulation
+exceeds that threshold. Feature engineering is materialised **once** by
+`task2_build_features.py` to avoid recomputing the expensive per-station
+windows on every training action.
+
+Model: Gradient-Boosted Trees (with a Logistic Regression baseline) via a Spark
+ML `Pipeline` — `StringIndexer` (station identity kept as a single indexed
+categorical column; `maxBins ≥ #stations` so the tree can split on it) →
+`VectorAssembler` → classifier. Station location is also carried explicitly as
+`lat`/`lon`, so we deliberately **do not one-hot encode** stations (that made
+the GBT feature vectors wide and memory heavy). Evaluated with a **temporal**
+train/test split (train on earlier years, test on the most recent year),
+reporting AUC-ROC, AUC-PR, accuracy, F1, and per-threshold AUC.
 
 ---
 

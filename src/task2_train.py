@@ -37,28 +37,33 @@ from spark_utils import get_spark, save_table  # noqa: E402
 from pyspark.ml import Pipeline  # noqa: E402
 from pyspark.ml.classification import GBTClassifier, LogisticRegression  # noqa: E402
 from pyspark.ml.evaluation import BinaryClassificationEvaluator, MulticlassClassificationEvaluator  # noqa: E402
-from pyspark.ml.feature import OneHotEncoder, StringIndexer, VectorAssembler  # noqa: E402
+from pyspark.ml.feature import StringIndexer, VectorAssembler  # noqa: E402
 from pyspark.sql import functions as F  # noqa: E402
+from pyspark import StorageLevel  # noqa: E402
 
 MODEL_DIR = os.path.join(config.MODELS_DIR, "rainfall_model")
 META_PATH = os.path.join(config.MODELS_DIR, "model_metadata.json")
 
 
 def build_pipeline(model_kind: str) -> Pipeline:
-    feature_cols = tf.BASE_FEATURE_COLS + ["threshold"]
+    # Station identity is kept as a single indexed numeric column rather than a
+    # one-hot vector: with ~91 stations, one-hot makes the feature vector wide
+    # and forces GBT to densify it (memory heavy). Trees can still split on the
+    # index, and lat/lon already carry the real spatial signal.
+    feature_cols = tf.BASE_FEATURE_COLS + ["threshold", "station_idx"]
 
     idx = StringIndexer(
         inputCol="station_id", outputCol="station_idx", handleInvalid="keep"
     )
-    ohe = OneHotEncoder(inputCols=["station_idx"], outputCols=["station_ohe"])
-    assembler = VectorAssembler(
-        inputCols=feature_cols + ["station_ohe"], outputCol="features"
-    )
+    assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
 
     if model_kind == "gbt":
+        # maxBins must be >= the number of station categories (~91) so the
+        # tree can split on station identity as a categorical feature.
         clf = GBTClassifier(
             labelCol="label", featuresCol="features",
-            maxIter=60, maxDepth=5, stepSize=0.1, seed=42,
+            maxIter=40, maxDepth=5, stepSize=0.1, maxBins=128,
+            subsamplingRate=0.7, cacheNodeIds=True, seed=42,
         )
     elif model_kind == "logreg":
         clf = LogisticRegression(
@@ -68,7 +73,7 @@ def build_pipeline(model_kind: str) -> Pipeline:
     else:
         raise ValueError(f"unknown model kind {model_kind!r}")
 
-    return Pipeline(stages=[idx, ohe, assembler, clf])
+    return Pipeline(stages=[idx, assembler, clf])
 
 
 def evaluate(pred, label_col="label"):
@@ -95,11 +100,14 @@ def main() -> None:
     ap.add_argument("--test-year", type=int, default=max(config.YEARS))
     ap.add_argument("--sample-fraction", type=float, default=1.0,
                     help="Randomly subsample base rows before threshold explode")
+    ap.add_argument("--max-train-rows", type=int, default=8_000_000,
+                    help="Cap on exploded training rows (downsampled if exceeded). "
+                         "Keeps GBT within memory; set 0 to disable.")
     ap.add_argument("--thresholds", type=float, nargs="*", default=tf.DEFAULT_THRESHOLDS)
     args = ap.parse_args()
 
     config.ensure_dirs()
-    spark = get_spark("task2_train", driver_memory="11g", shuffle_partitions=96)
+    spark = get_spark("task2_train", driver_memory="20g", shuffle_partitions=96)
 
     # Base features were materialised once by task2_build_features.py, so this
     # is a cheap read - no per-station window recomputation here.
@@ -118,8 +126,21 @@ def main() -> None:
     labelled = labelled.select(*keep).na.drop()
 
     # Temporal split: train on years < test-year, test on test-year.
-    train = labelled.filter(F.col("year") < args.test_year).cache()
-    test = labelled.filter(F.col("year") == args.test_year).cache()
+    train = labelled.filter(F.col("year") < args.test_year)
+    test = labelled.filter(F.col("year") == args.test_year)
+
+    # Cap the exploded training volume so GBT stays within memory. We downsample
+    # uniformly at random (label distribution preserved in expectation).
+    if args.max_train_rows and args.max_train_rows > 0:
+        n_raw = train.count()
+        if n_raw > args.max_train_rows:
+            frac = args.max_train_rows / float(n_raw)
+            print(f"downsampling train {n_raw:,} -> ~{args.max_train_rows:,} (frac={frac:.4f})")
+            train = train.sample(False, frac, seed=42)
+
+    # Disk-backed persistence avoids OOM on the large exploded frames.
+    train = train.persist(StorageLevel.MEMORY_AND_DISK)
+    test = test.persist(StorageLevel.MEMORY_AND_DISK)
     n_train, n_test = train.count(), test.count()
     print(f"train rows: {n_train:,}  |  test rows: {n_test:,}")
     print("train positive rate:", train.select(F.avg("label")).first()[0])
@@ -166,6 +187,8 @@ def main() -> None:
         "train_thresholds": sorted(set(args.thresholds)),
         "test_year": args.test_year,
         "train_years": [y for y in config.YEARS if y < args.test_year],
+        "max_train_rows": args.max_train_rows,
+        "sample_fraction": args.sample_fraction,
         "n_train": n_train,
         "n_test": n_test,
         "metrics_overall": overall,

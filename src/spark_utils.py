@@ -20,6 +20,8 @@ def get_spark(app_name: str, driver_memory: str = "10g", shuffle_partitions: int
         .config("spark.sql.shuffle.partitions", str(shuffle_partitions))
         .config("spark.sql.parquet.compression.codec", "snappy")
         .config("spark.ui.showConsoleProgress", "false")
+        .config("spark.memory.fraction", "0.6")
+        .config("spark.driver.maxResultSize", "2g")
         .config("spark.local.dir", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "_spark_tmp"))
         .getOrCreate()
     )
