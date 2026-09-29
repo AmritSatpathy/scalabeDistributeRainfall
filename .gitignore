@@ -1,0 +1,22 @@
+# --- Python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# --- Raw & processed data (large; regenerate via download_data.py / clean_data.py) ---
+data/raw/
+data/processed/
+data/_spark_tmp/
+
+# --- Spark / logs ---
+*.log
+spark-warehouse/
+metastore_db/
+derby.log
+
+# --- OS noise ---
+.DS_Store
+Thumbs.db
+
+# Keep: src/, output/ (figures+tables), models/, report/, README, requirements

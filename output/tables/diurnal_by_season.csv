@@ -1,0 +1,73 @@
+season,hour,mean_rain_mm
+"Inter-monsoon (Apr,May,Oct,Nov)",0,0.010433407975695684
+"Inter-monsoon (Apr,May,Oct,Nov)",1,0.011262660180466412
+"Inter-monsoon (Apr,May,Oct,Nov)",2,0.01365699268216768
+"Inter-monsoon (Apr,May,Oct,Nov)",3,0.01690263771466756
+"Inter-monsoon (Apr,May,Oct,Nov)",4,0.018008949484716937
+"Inter-monsoon (Apr,May,Oct,Nov)",5,0.025925190954216186
+"Inter-monsoon (Apr,May,Oct,Nov)",6,0.026602390745539065
+"Inter-monsoon (Apr,May,Oct,Nov)",7,0.028751579243876526
+"Inter-monsoon (Apr,May,Oct,Nov)",8,0.026943053442917295
+"Inter-monsoon (Apr,May,Oct,Nov)",9,0.023793703653036735
+"Inter-monsoon (Apr,May,Oct,Nov)",10,0.025625666010128254
+"Inter-monsoon (Apr,May,Oct,Nov)",11,0.02830106244179292
+"Inter-monsoon (Apr,May,Oct,Nov)",12,0.02931037044880028
+"Inter-monsoon (Apr,May,Oct,Nov)",13,0.0423169867210838
+"Inter-monsoon (Apr,May,Oct,Nov)",14,0.06904502398324801
+"Inter-monsoon (Apr,May,Oct,Nov)",15,0.08236061052324833
+"Inter-monsoon (Apr,May,Oct,Nov)",16,0.06289710283746876
+"Inter-monsoon (Apr,May,Oct,Nov)",17,0.048032632381775214
+"Inter-monsoon (Apr,May,Oct,Nov)",18,0.03129735149659996
+"Inter-monsoon (Apr,May,Oct,Nov)",19,0.014906434385041151
+"Inter-monsoon (Apr,May,Oct,Nov)",20,0.008282686236732123
+"Inter-monsoon (Apr,May,Oct,Nov)",21,0.008804236059648363
+"Inter-monsoon (Apr,May,Oct,Nov)",22,0.009260361228987457
+"Inter-monsoon (Apr,May,Oct,Nov)",23,0.013658496556496104
+NE monsoon (Dec-Mar),0,0.01050071492539584
+NE monsoon (Dec-Mar),1,0.008864806721473785
+NE monsoon (Dec-Mar),2,0.008290133982947659
+NE monsoon (Dec-Mar),3,0.012428246723863584
+NE monsoon (Dec-Mar),4,0.011024163628198122
+NE monsoon (Dec-Mar),5,0.008617556248402193
+NE monsoon (Dec-Mar),6,0.009097129752586808
+NE monsoon (Dec-Mar),7,0.010879376534957831
+NE monsoon (Dec-Mar),8,0.014041760822515938
+NE monsoon (Dec-Mar),9,0.014955180668657754
+NE monsoon (Dec-Mar),10,0.013512839913237505
+NE monsoon (Dec-Mar),11,0.014457388798972029
+NE monsoon (Dec-Mar),12,0.02189396204417574
+NE monsoon (Dec-Mar),13,0.031028319568883345
+NE monsoon (Dec-Mar),14,0.05315794373564971
+NE monsoon (Dec-Mar),15,0.08196608925772822
+NE monsoon (Dec-Mar),16,0.09169352084140861
+NE monsoon (Dec-Mar),17,0.07319045718666095
+NE monsoon (Dec-Mar),18,0.04510368905747694
+NE monsoon (Dec-Mar),19,0.02280518616823004
+NE monsoon (Dec-Mar),20,0.014478322865948436
+NE monsoon (Dec-Mar),21,0.008158032760074537
+NE monsoon (Dec-Mar),22,0.008138603725295079
+NE monsoon (Dec-Mar),23,0.00860312805227157
+SW monsoon (Jun-Sep),0,0.007536204923547492
+SW monsoon (Jun-Sep),1,0.005549122708089484
+SW monsoon (Jun-Sep),2,0.011260477399455007
+SW monsoon (Jun-Sep),3,0.020726872100308873
+SW monsoon (Jun-Sep),4,0.02143047061751505
+SW monsoon (Jun-Sep),5,0.020165699060073636
+SW monsoon (Jun-Sep),6,0.025568353098707742
+SW monsoon (Jun-Sep),7,0.03271619939493401
+SW monsoon (Jun-Sep),8,0.04294105491886239
+SW monsoon (Jun-Sep),9,0.047474829210521687
+SW monsoon (Jun-Sep),10,0.04452851486934624
+SW monsoon (Jun-Sep),11,0.03579142954894726
+SW monsoon (Jun-Sep),12,0.03463629880301507
+SW monsoon (Jun-Sep),13,0.03139123629328572
+SW monsoon (Jun-Sep),14,0.0284804537656113
+SW monsoon (Jun-Sep),15,0.03418211159290302
+SW monsoon (Jun-Sep),16,0.02737463265920166
+SW monsoon (Jun-Sep),17,0.022021142448467503
+SW monsoon (Jun-Sep),18,0.013927383297650867
+SW monsoon (Jun-Sep),19,0.01047216552645339
+SW monsoon (Jun-Sep),20,0.006938099636951627
+SW monsoon (Jun-Sep),21,0.007156141267160985
+SW monsoon (Jun-Sep),22,0.006219753228137438
+SW monsoon (Jun-Sep),23,0.006904496124716235

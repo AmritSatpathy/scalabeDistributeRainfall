@@ -1,0 +1,5 @@
+pyspark==3.5.3
+pandas
+matplotlib
+requests
+setuptools<81
