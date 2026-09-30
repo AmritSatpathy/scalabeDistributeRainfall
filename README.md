@@ -12,6 +12,9 @@ The project has two deliverables:
   **probability that a station accumulates more than a given amount of rain in
   the next 30 minutes**, given `(station, prediction time, threshold)`.
 
+Companion docs: [`RATIONALE.md`](RATIONALE.md) explains *why* each decision was
+made; [`PROGRESS.md`](PROGRESS.md) tracks status and the HPC full-dataset plan.
+
 ---
 
 ## 1. Data
@@ -82,6 +85,7 @@ rainTheFall/
 ├── report/                    # written report (PDF/Markdown)
 ├── requirements.txt
 ├── README.md
+├── RATIONALE.md               # why each choice was made (design decisions)
 └── PROGRESS.md                # current status / what's left
 ```
 
@@ -177,6 +181,10 @@ Example for a tighter machine: `--max-train-rows 4000000`.
 ---
 
 ## 6. Method summary
+
+> For the reasoning behind every decision below — why each cleaning rule, why
+> each Task 1 figure, why the threshold-as-feature framing, and why GBT — see
+> [`RATIONALE.md`](RATIONALE.md).
 
 **Cleaning.** Parse `timestamp` as SGT; cast `reading_value` to mm; drop null /
 negative / physically impossible (> 60 mm per 5 min) readings; de-duplicate on
