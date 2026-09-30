@@ -1,15 +1,15 @@
 # PROGRESS — where this project stands
 
 > Status handoff for an AI agent or teammate resuming the work.
-> Last updated: data pipeline + Task 1 complete; Task 2 complete end-to-end —
-> **full-coverage local training run done** (GBT + LogReg, final metrics below),
-> model saved, AUC-vs-threshold figure produced.
+> Last updated: **ALL PHASES COMPLETE.** Data pipeline, Task 1, Task 2 (full-data
+> GBT saved), and the full distributed-computing + model-comparison study are
+> done. Report drafted (`report/REPORT.md` + self-contained `report/REPORT.html`
+> for PDF export). Remaining: fill in group member names/IDs, export the PDF,
+> and merge `feature/distributed-compute` → `mainline`.
 >
-> **SCOPE NOW EXPANDED** into a distributed-computing + model-comparison study
-> (compute-environment × model matrix). The master plan is in
-> [`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md); the running checklist is in
-> "SCOPE EXPANSION" below. Remaining: cluster-ready config, more MLlib models,
-> Standalone + Docker + HPC tiers, benchmark harness, GPU LSTM, and the report.
+> **Study delivered:** 8 models (6 MLlib + LSTM/TCN on GPU) × up to 5 compute
+> configs (local[*], standalone-2×2/4×2, docker-2w/3w) + prepared HPC/Slurm
+> tier. Master plan: [`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md).
 
 ## TL;DR
 
