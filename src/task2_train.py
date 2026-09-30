@@ -1,25 +1,24 @@
 """
 Task 2 - Train and evaluate a rainfall-probability model with Spark MLlib.
 
-Model target: P(rain over next 30 min at a station > threshold), where the
-threshold is supplied as an input feature (see task2_features.py). We train a
-Gradient-Boosted Trees classifier (with a Logistic Regression baseline) using
-a StringIndexer + OneHotEncoder for station identity and a VectorAssembler
-for the numeric features.
+This is a THIN ORCHESTRATOR. It selects:
+  * WHICH MODEL       via the models registry   (--model,   see src/models/)
+  * WHICH ARCHITECTURE via the compute registry (--compute, see src/compute/)
+and runs the shared train/evaluate/benchmark flow. Model definitions and
+compute configurations live in their own modules, so adding either is a
+one-file change with no edits here.
 
-Evaluation uses a *temporal* train/test split (train on earlier years, test on
-the most recent year) to reflect real forecasting use, and reports AUC-ROC,
-area under PR curve, accuracy and F1. Per-threshold AUC is also reported so we
-can see how discrimination varies with the requested threshold.
-
-The fitted PipelineModel is written to models/rainfall_gbt_pipeline and a JSON
-metadata file records the feature list, thresholds and metrics.
+Target: P(rain over next 30 min at a station > threshold). The threshold is a
+model feature (see task2_features.py) so one model serves any threshold.
+Evaluation uses a temporal split (train on earlier years, test on the most
+recent year) and reports AUC-ROC, AUC-PR, accuracy, F1 - overall and per
+threshold - plus train/predict wall-clock time for the benchmark study.
 
 Usage
 -----
-    python src/task2_train.py                       # full data
-    python src/task2_train.py --sample-fraction 0.2 # subsample base rows
-    python src/task2_train.py --test-year 2024 --model gbt
+    python src/task2_train.py --model gbt
+    python src/task2_train.py --model rf --compute local-4 --no-save
+    python src/task2_train.py --list          # show models + compute configs
 """
 from __future__ import annotations
 
@@ -27,53 +26,28 @@ import argparse
 import json
 import os
 import sys
+import time
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
 import task2_features as tf  # noqa: E402
 from task2_build_features import FEATURES_BASE  # noqa: E402
 from spark_utils import get_spark, save_table  # noqa: E402
+import models as model_registry  # noqa: E402
+import compute as compute_registry  # noqa: E402
 
-from pyspark.ml import Pipeline  # noqa: E402
-from pyspark.ml.classification import GBTClassifier, LogisticRegression  # noqa: E402
-from pyspark.ml.evaluation import BinaryClassificationEvaluator, MulticlassClassificationEvaluator  # noqa: E402
-from pyspark.ml.feature import StringIndexer, VectorAssembler  # noqa: E402
+from pyspark.ml.evaluation import (  # noqa: E402
+    BinaryClassificationEvaluator,
+    MulticlassClassificationEvaluator,
+)
 from pyspark.sql import functions as F  # noqa: E402
 from pyspark import StorageLevel  # noqa: E402
 
 MODEL_DIR = os.path.join(config.MODELS_DIR, "rainfall_model")
 META_PATH = os.path.join(config.MODELS_DIR, "model_metadata.json")
 
-
-def build_pipeline(model_kind: str) -> Pipeline:
-    # Station identity is kept as a single indexed numeric column rather than a
-    # one-hot vector: with ~91 stations, one-hot makes the feature vector wide
-    # and forces GBT to densify it (memory heavy). Trees can still split on the
-    # index, and lat/lon already carry the real spatial signal.
-    feature_cols = tf.BASE_FEATURE_COLS + ["threshold", "station_idx"]
-
-    idx = StringIndexer(
-        inputCol="station_id", outputCol="station_idx", handleInvalid="keep"
-    )
-    assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
-
-    if model_kind == "gbt":
-        # maxBins must be >= the number of station categories (~91) so the
-        # tree can split on station identity as a categorical feature.
-        clf = GBTClassifier(
-            labelCol="label", featuresCol="features",
-            maxIter=40, maxDepth=5, stepSize=0.1, maxBins=128,
-            subsamplingRate=0.7, cacheNodeIds=True, seed=42,
-        )
-    elif model_kind == "logreg":
-        clf = LogisticRegression(
-            labelCol="label", featuresCol="features",
-            maxIter=50, regParam=0.01, elasticNetParam=0.0,
-        )
-    else:
-        raise ValueError(f"unknown model kind {model_kind!r}")
-
-    return Pipeline(stages=[idx, assembler, clf])
+# Assembled feature columns (base features + threshold + station index).
+FEATURE_COLS = tf.BASE_FEATURE_COLS + ["threshold", "station_idx"]
 
 
 def evaluate(pred, label_col="label"):
@@ -94,43 +68,68 @@ def evaluate(pred, label_col="label"):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--features", default=FEATURES_BASE,
-                    help="Materialised base feature Parquet (from task2_build_features.py)")
-    ap.add_argument("--model", choices=["gbt", "logreg"], default="gbt")
+    ap.add_argument("--model", default="gbt",
+                    help="Model name (see --list). Default: gbt")
+    ap.add_argument("--compute", default=None,
+                    help="Compute config name (see --list). Applies env overrides "
+                         "before the Spark session starts. Default: inherit env / local[*]")
+    ap.add_argument("--features", default=FEATURES_BASE)
     ap.add_argument("--test-year", type=int, default=max(config.YEARS))
-    ap.add_argument("--sample-fraction", type=float, default=1.0,
-                    help="Randomly subsample base rows before threshold explode")
+    ap.add_argument("--sample-fraction", type=float, default=1.0)
     ap.add_argument("--max-train-rows", type=int, default=8_000_000,
-                    help="Cap on exploded training rows (downsampled if exceeded). "
-                         "Keeps GBT within memory; set 0 to disable.")
+                    help="Cap on exploded training rows (downsampled if exceeded); 0 disables.")
     ap.add_argument("--thresholds", type=float, nargs="*", default=tf.DEFAULT_THRESHOLDS)
+    ap.add_argument("--no-save", action="store_true",
+                    help="Do not overwrite the canonical models/rainfall_model (for benchmark runs).")
+    ap.add_argument("--benchmark-csv",
+                    default=os.path.join(config.TABLES_DIR, "benchmark_results.csv"))
+    ap.add_argument("--list", action="store_true",
+                    help="Print available models and compute configs, then exit.")
     args = ap.parse_args()
 
+    if args.list:
+        print("Models:")
+        for name, fw, desc in model_registry.describe():
+            print(f"  {name:10s} [{fw}]  {desc}")
+        print("Compute configs:")
+        for name, master, desc in compute_registry.describe():
+            print(f"  {name:16s} {master:28s} {desc}")
+        return
+
+    spec = model_registry.get_model(args.model)
+    if spec.framework != "mllib":
+        raise SystemExit(
+            f"model {args.model!r} is framework={spec.framework!r}; "
+            f"use its own runner (this orchestrator handles MLlib models)."
+        )
+
+    # Apply the compute config BEFORE creating the Spark session so its env
+    # overrides (master, memory, executors) take effect.
+    compute_label = args.compute or os.environ.get("SPARK_MASTER", "local[*]")
+    if args.compute:
+        cfg = compute_registry.get_compute(args.compute)
+        cfg.apply()
+        compute_label = cfg.name
+        print(f"[compute] {cfg.name}: {cfg.description}  (master={cfg.master})")
+
     config.ensure_dirs()
-    spark = get_spark("task2_train", driver_memory="20g", shuffle_partitions=96)
+    spark = get_spark("task2_train")
 
-    # Base features were materialised once by task2_build_features.py, so this
-    # is a cheap read - no per-station window recomputation here.
+    # --- data: read materialised features, explode thresholds, temporal split
     base = spark.read.parquet(args.features)
-
     if args.sample_fraction < 1.0:
         base = base.sample(False, args.sample_fraction, seed=42)
 
     labelled = tf.explode_thresholds(base, args.thresholds)
-
-    # Keep only the columns we need, and drop any residual nulls.
     keep = (
         ["station_id", "year", "threshold", "label", "future_30min_mm"]
         + tf.BASE_FEATURE_COLS
     )
     labelled = labelled.select(*keep).na.drop()
 
-    # Temporal split: train on years < test-year, test on test-year.
     train = labelled.filter(F.col("year") < args.test_year)
     test = labelled.filter(F.col("year") == args.test_year)
 
-    # Cap the exploded training volume so GBT stays within memory. We downsample
-    # uniformly at random (label distribution preserved in expectation).
     if args.max_train_rows and args.max_train_rows > 0:
         n_raw = train.count()
         if n_raw > args.max_train_rows:
@@ -138,65 +137,104 @@ def main() -> None:
             print(f"downsampling train {n_raw:,} -> ~{args.max_train_rows:,} (frac={frac:.4f})")
             train = train.sample(False, frac, seed=42)
 
-    # Disk-backed persistence avoids OOM on the large exploded frames.
     train = train.persist(StorageLevel.MEMORY_AND_DISK)
     test = test.persist(StorageLevel.MEMORY_AND_DISK)
     n_train, n_test = train.count(), test.count()
     print(f"train rows: {n_train:,}  |  test rows: {n_test:,}")
     print("train positive rate:", train.select(F.avg("label")).first()[0])
 
-    pipeline = build_pipeline(args.model)
+    # --- model: built by the selected spec (feature handling encapsulated) ---
+    pipeline = spec.build_pipeline(FEATURE_COLS)
     print(f"fitting {args.model} pipeline...")
-    model = pipeline.fit(train)
+    t0 = time.perf_counter()
+    fitted = pipeline.fit(train)
+    train_secs = time.perf_counter() - t0
+    print(f"train time: {train_secs:.1f}s")
 
     print("scoring test set...")
-    pred = model.transform(test)
+    t0 = time.perf_counter()
+    pred = fitted.transform(test).persist(StorageLevel.MEMORY_AND_DISK)
+    _ = pred.count()  # force materialisation so the timer captures real work
+    predict_secs = time.perf_counter() - t0
+    print(f"predict time (full test set): {predict_secs:.1f}s")
 
     overall = evaluate(pred)
     print("OVERALL test metrics:", json.dumps(overall, indent=2))
 
-    # Per-threshold AUC (evaluate on the subset for each threshold value).
     per_thr = []
     for t in sorted(set(args.thresholds)):
         sub = pred.filter(F.col("threshold") == float(t))
-        # AUC undefined if only one class present
         n_pos = sub.filter(F.col("label") == 1).limit(1).count()
         n_neg = sub.filter(F.col("label") == 0).limit(1).count()
-        if n_pos and n_neg:
-            m = evaluate(sub)
-        else:
-            m = {"auc_roc": None, "auc_pr": None, "accuracy": None, "f1": None}
-        m2 = {"threshold": t, **m}
-        per_thr.append(m2)
-        print(f"  threshold={t}: {m}")
+        m = evaluate(sub) if (n_pos and n_neg) else {
+            "auc_roc": None, "auc_pr": None, "accuracy": None, "f1": None}
+        per_thr.append({"threshold": t, **m})
+        print(f"  threshold={t}: {per_thr[-1]}")
 
     import pandas as pd
-    save_table(pd.DataFrame(per_thr), os.path.join(config.TABLES_DIR, "model_metrics_by_threshold.csv"))
+
+    save_table(pd.DataFrame(per_thr),
+               os.path.join(config.TABLES_DIR, f"model_metrics_by_threshold_{args.model}.csv"))
     save_table(pd.DataFrame([{"scope": "overall", **overall}]),
-               os.path.join(config.TABLES_DIR, "model_metrics_overall.csv"))
+               os.path.join(config.TABLES_DIR, f"model_metrics_overall_{args.model}.csv"))
+    if args.model == "gbt":
+        save_table(pd.DataFrame(per_thr),
+                   os.path.join(config.TABLES_DIR, "model_metrics_by_threshold.csv"))
+        save_table(pd.DataFrame([{"scope": "overall", **overall}]),
+                   os.path.join(config.TABLES_DIR, "model_metrics_overall.csv"))
 
-    # Persist model + metadata
-    print(f"saving model -> {MODEL_DIR}")
-    model.write().overwrite().save(MODEL_DIR)
-
-    meta = {
-        "model_kind": args.model,
-        "horizon_minutes": config.HORIZON_MINUTES,
-        "base_feature_cols": tf.BASE_FEATURE_COLS,
-        "uses_threshold_as_feature": True,
-        "train_thresholds": sorted(set(args.thresholds)),
-        "test_year": args.test_year,
-        "train_years": [y for y in config.YEARS if y < args.test_year],
-        "max_train_rows": args.max_train_rows,
-        "sample_fraction": args.sample_fraction,
+    # --- benchmark row: model x compute-config x timings x AUC --------------
+    sc = spark.sparkContext
+    bench_row = {
+        "model": args.model,
+        "compute_config": compute_label,
+        "spark_master": sc.master,
+        "default_parallelism": sc.defaultParallelism,
         "n_train": n_train,
         "n_test": n_test,
-        "metrics_overall": overall,
-        "metrics_by_threshold": per_thr,
+        "train_secs": round(train_secs, 2),
+        "predict_secs": round(predict_secs, 2),
+        "auc_roc": round(overall["auc_roc"], 5),
+        "auc_pr": round(overall["auc_pr"], 5),
+        "accuracy": round(overall["accuracy"], 5),
+        "f1": round(overall["f1"], 5),
+        "timestamp": pd.Timestamp.now().isoformat(timespec="seconds"),
     }
-    with open(META_PATH, "w") as fh:
-        json.dump(meta, fh, indent=2)
-    print(f"wrote metadata -> {META_PATH}")
+    os.makedirs(os.path.dirname(args.benchmark_csv), exist_ok=True)
+    pd.DataFrame([bench_row]).to_csv(
+        args.benchmark_csv, mode="a",
+        header=not os.path.exists(args.benchmark_csv), index=False,
+    )
+    print(f"appended benchmark row -> {args.benchmark_csv}")
+
+    # --- persist model (skip on benchmark sweeps) ---------------------------
+    if args.no_save:
+        print("--no-save set: not overwriting the canonical model.")
+    else:
+        print(f"saving model -> {MODEL_DIR}")
+        fitted.write().overwrite().save(MODEL_DIR)
+        meta = {
+            "model_kind": args.model,
+            "model_description": spec.description,
+            "horizon_minutes": config.HORIZON_MINUTES,
+            "base_feature_cols": tf.BASE_FEATURE_COLS,
+            "uses_threshold_as_feature": True,
+            "train_thresholds": sorted(set(args.thresholds)),
+            "test_year": args.test_year,
+            "train_years": [y for y in config.YEARS if y < args.test_year],
+            "max_train_rows": args.max_train_rows,
+            "sample_fraction": args.sample_fraction,
+            "compute_config": compute_label,
+            "n_train": n_train,
+            "n_test": n_test,
+            "train_secs": round(train_secs, 2),
+            "predict_secs": round(predict_secs, 2),
+            "metrics_overall": overall,
+            "metrics_by_threshold": per_thr,
+        }
+        with open(META_PATH, "w") as fh:
+            json.dump(meta, fh, indent=2)
+        print(f"wrote metadata -> {META_PATH}")
 
     spark.stop()
 
