@@ -58,7 +58,9 @@ def _auc_pr(y_true: np.ndarray, score: np.ndarray) -> float:
     # prepend recall=0 point
     recall = np.concatenate([[0.0], recall])
     precision = np.concatenate([[1.0], precision])
-    return float(np.trapz(precision, recall))
+    # np.trapz was renamed to np.trapezoid in NumPy 2.0.
+    trapz = getattr(np, "trapezoid", None) or np.trapz
+    return float(trapz(precision, recall))
 
 
 def compute_metrics(y_true: np.ndarray, prob: np.ndarray, thr: float = 0.5) -> dict:
