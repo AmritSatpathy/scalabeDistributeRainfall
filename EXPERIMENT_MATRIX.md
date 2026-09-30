@@ -1,5 +1,14 @@
 # EXPERIMENT MATRIX — compute environments × models
 
+> **STATUS — COMPLETE (except the multi-node HPC run).** All models (M0–M7:
+> GBT, RF, LogReg, LinearSVC, MLP, FM, LSTM, TCN) and compute tiers E0–E2
+> (`local[*]`, Spark Standalone 2×2/4×2, Docker 2w/3w) plus the GPU tier (E4)
+> are built, run, and benchmarked; figures + report are done. The HPC tier (E3)
+> is **prepared but not executed** (no cluster access yet). The "TODO" markers
+> below reflect the *original* plan and are retained for traceability — treat
+> them as done except where they concern E3/HPC. See `PROGRESS.md` and
+> `report/REPORT.md` for the final results.
+
 Master plan for the expanded project. The goal is to move from "we ran one
 PySpark job" to a proper **distributed-computing + model-comparison study**:
 run the rainfall prediction (Task 2) across several **compute environments** and

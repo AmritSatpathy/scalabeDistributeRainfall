@@ -14,6 +14,8 @@ data/_spark_tmp/
 spark-warehouse/
 metastore_db/
 derby.log
+cluster/logs/
+cluster/pids/
 
 # --- OS noise ---
 .DS_Store
