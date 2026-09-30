@@ -3,3 +3,9 @@ pandas
 matplotlib
 requests
 setuptools<81
+
+# Deep-learning models (Phase 1b: LSTM / TCN on GPU).
+# Install the CUDA build matched to your driver, e.g.:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu124
+# CPU-only also works (slower): pip install torch
+torch>=2.2
