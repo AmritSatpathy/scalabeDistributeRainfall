@@ -96,6 +96,13 @@ def main() -> None:
     model = PipelineModel.load(args.model)
 
     row = compute_feature_row(spark, args.data, args.station, args.time, args.threshold)
+
+    # --- diagnostic: show the exact feature row being scored --------------
+    diag = row.select(
+        "ts", "hour", "rain_mm", "lag_5m_mm",
+        "roll_30m_mm", "roll_60m_mm", "roll_180m_mm", "mins_since_rain",
+    ).first()
+
     pred = model.transform(row)
     prob, label = extract_probability(pred)
 
@@ -103,6 +110,15 @@ def main() -> None:
     print(f"Station    : {args.station}")
     print(f"Time (SGT) : {args.time}")
     print(f"Threshold  : {args.threshold} mm over next 30 min")
+    print("-" * 60)
+    print("Feature row actually scored (context up to prediction time):")
+    print(f"  matched reading ts : {diag['ts']}  (hour={diag['hour']})")
+    print(f"  rain_mm (this 5min): {diag['rain_mm']:.3f}")
+    print(f"  lag_5m_mm          : {diag['lag_5m_mm']:.3f}")
+    print(f"  roll_30m_mm        : {diag['roll_30m_mm']:.3f}")
+    print(f"  roll_60m_mm        : {diag['roll_60m_mm']:.3f}")
+    print(f"  roll_180m_mm       : {diag['roll_180m_mm']:.3f}")
+    print(f"  mins_since_rain    : {diag['mins_since_rain']:.1f}")
     print("-" * 60)
     print(f"P(rain > {args.threshold} mm in next 30 min) = {prob:.4f}")
     print(f"Predicted class (0.5 cut)                = {int(label)}")
