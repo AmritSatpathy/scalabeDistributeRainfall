@@ -35,14 +35,20 @@ import config  # noqa: E402
 RESULTS = os.path.join(config.TABLES_DIR, "benchmark_results.csv")
 
 
+_SUFFIX = ""
+
+
 def fig_path(name: str) -> str:
+    if _SUFFIX:
+        stem, ext = os.path.splitext(name)
+        name = f"{stem}{_SUFFIX}{ext}"
     return os.path.join(config.FIGURES_DIR, name)
 
 
-def load() -> pd.DataFrame:
-    if not os.path.exists(RESULTS):
-        raise SystemExit(f"No benchmark results at {RESULTS}. Run src/benchmark.py first.")
-    df = pd.read_csv(RESULTS)
+def load(results_path: str) -> pd.DataFrame:
+    if not os.path.exists(results_path):
+        raise SystemExit(f"No benchmark results at {results_path}. Run src/benchmark.py first.")
+    df = pd.read_csv(results_path)
     # keep the most recent row per (model, compute_config)
     df = df.sort_values("timestamp").drop_duplicates(
         subset=["model", "compute_config"], keep="last"
@@ -187,10 +193,17 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--primary-compute", default="local-all",
                     help="Compute config to use for the per-model bar charts")
+    ap.add_argument("--results", default=RESULTS,
+                    help="Benchmark CSV to plot (e.g. benchmark_compute.csv)")
+    ap.add_argument("--suffix", default="",
+                    help="Suffix appended to output figure filenames (e.g. _compute)")
     args = ap.parse_args()
 
+    global _SUFFIX
+    _SUFFIX = args.suffix
+
     config.ensure_dirs()
-    df = load()
+    df = load(args.results)
     print(f"loaded {len(df)} unique (model, compute) rows")
 
     bar_train_time(df, args.primary_compute)
