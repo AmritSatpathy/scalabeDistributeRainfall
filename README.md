@@ -13,7 +13,9 @@ The project has two deliverables:
   the next 30 minutes**, given `(station, prediction time, threshold)`.
 
 Companion docs: [`RATIONALE.md`](RATIONALE.md) explains *why* each decision was
-made; [`PROGRESS.md`](PROGRESS.md) tracks status and the HPC full-dataset plan.
+made; [`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md) is the master plan for the
+compute-environment × model study; [`PROGRESS.md`](PROGRESS.md) tracks status
+and the HPC full-dataset plan.
 
 ---
 
@@ -86,6 +88,7 @@ rainTheFall/
 ├── requirements.txt
 ├── README.md
 ├── RATIONALE.md               # why each choice was made (design decisions)
+├── EXPERIMENT_MATRIX.md       # master plan: compute-env × model matrix
 └── PROGRESS.md                # current status / what's left
 ```
 

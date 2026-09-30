@@ -3,9 +3,13 @@
 > Status handoff for an AI agent or teammate resuming the work.
 > Last updated: data pipeline + Task 1 complete; Task 2 complete end-to-end —
 > **full-coverage local training run done** (GBT + LogReg, final metrics below),
-> model saved, AUC-vs-threshold figure produced. Remaining: the written report
-> (+ member IDs), an optional GPU LSTM comparison, and the eventual uncapped
-> HPC run. Plan for HPC included below.
+> model saved, AUC-vs-threshold figure produced.
+>
+> **SCOPE NOW EXPANDED** into a distributed-computing + model-comparison study
+> (compute-environment × model matrix). The master plan is in
+> [`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md); the running checklist is in
+> "SCOPE EXPANSION" below. Remaining: cluster-ready config, more MLlib models,
+> Standalone + Docker + HPC tiers, benchmark harness, GPU LSTM, and the report.
 
 ## TL;DR
 
@@ -122,18 +126,57 @@ train = 2017–2023, 8M-row training cap.
 - Figure: `output/figures/model_auc_by_threshold.png`; comparison table
   `output/tables/model_comparison_by_threshold.csv`.
 
-## WHAT'S LEFT (in order)
+## SCOPE EXPANSION — distributed-computing + model-comparison study
 
-1. **Write the report** (`report/`, PDF-ready markdown): approach, environment,
-   Task 1 + Task 2 results with figures/tables, model evaluation (AUC etc.),
-   AI-usage declaration, limitations, group member names + student IDs.
-   Use the numbers above and the figures in `output/figures`.
-2. **Optional (recommended per discussion):** build `task2_lstm.py` — a PyTorch
-   GPU LSTM benchmarked head-to-head with the GBT (same features/label/split/
-   metrics), as supplementary model-comparison + future-work evidence. The GBT
-   remains the graded MLlib deliverable.
-3. **Needed from the user:** group member names + student IDs.
-4. **HPC full uncapped run:** see the cluster plan below (removes the 8M cap).
+The single-process `local[*]` pipeline works but is "too easy" for the marks.
+We are expanding into a **compute-environment × model matrix**: run Task 2
+across several Spark deployment tiers and several models, benchmark them, and
+discuss the trade-offs. The full plan (two axes, the combined matrix, the
+enabling deliverables D1–D9, execution order, and verified feasibility) lives
+in **[`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md)** — that is the master plan;
+this section is just the running checklist.
+
+Environments: **E0** `local[*]` (done) · **E1** local Standalone cluster ·
+**E2** Docker Spark cluster · **E3** HPC multi-node · **E4** GPU (deep learning).
+Models: **M0** GBT + **M1** LogReg (done) · **M2** RandomForest · **M3** LinearSVC ·
+**M4** MLP (MLlib) · (**M5** FM, **M6** XGBoost-on-Spark = stretch) · **M7** LSTM (GPU).
+
+### WHAT'S LEFT (in execution order — see matrix for detail)
+
+1. **D1 — cluster-ready config.** Parameterise `--master`, executor cores/
+   memory, shuffle partitions via CLI/env in `spark_utils.py`/`config.py` so the
+   same scripts run on E0–E3 unchanged. *(unlocks everything else)*
+2. **D2 — more MLlib models.** Extend `--model` to `rf`, `linsvc`, `mlp`
+   (+ optional `fm`) → model-comparison table. Cheap, stays distributed.
+3. **D5 + E1 — local Standalone cluster.** Launch scripts (`cluster/`), run
+   Task 2, capture timing vs E0.
+4. **D6 + E2 — Docker Spark cluster.** `docker/docker-compose.yml` (configurable
+   worker replicas) + `submit.sh`; validate locally, capture timing.
+   *(Docker 29.7.2 + Compose v5.5.0 confirmed present.)*
+5. **D3 + D4 — benchmark harness + plots.** `src/benchmark.py` times runs per
+   (env, model, #executors) → CSV; `src/benchmark_plot.py` → runtime/speed-up
+   curves + model-AUC bars for the report.
+6. **D8 + E4 — LSTM on GPU.** Install PyTorch-CUDA (~2.5 GB), build
+   `src/task2_lstm.py` (same features/label/split/metrics), benchmark vs GBT.
+   *(GPU: RTX 3050 Ti, 4 GB VRAM — modest model/batch sizes.)*
+7. **D7 + E3 — HPC scale-out.** Submit scripts (Slurm/PBS or managed) + staging
+   checklist; run uncapped full-data GBT (removes 8M cap). See HPC plan below.
+8. **D9 — write the report** (`report/`): fold in Task 1, Task 2, the
+   cluster-deployment + scaling + model-comparison sections, AI-usage
+   declaration, limitations, and group member names + student IDs.
+
+### Honest caveats to carry into the report
+- **E1/E2 on one physical machine will likely be *slower* than E0** (network +
+  serialization + container overhead on the same 16 cores / 24 GB). Real
+  speed-up and the uncapped full-data training belong to **E3/HPC**. Measuring
+  and explaining this scale-out-vs-scale-up distinction is itself worth marks.
+- **4 GB VRAM** bounds the LSTM (E4) to a modest architecture.
+
+### Open decisions (need user input) — mirrors matrix
+1. Final scope: full matrix or trim (e.g. drop M5/M6, defer E3)?
+2. HPC scheduler type: Slurm / PBS / Dataproc / Databricks / EMR?
+3. Approve installing PyTorch-CUDA (~2.5 GB) for the LSTM?
+4. Group member names + student IDs (for the report).
 
 ## HPC / cluster plan (full uncapped dataset — future work)
 
