@@ -19,8 +19,10 @@ Standalone layouts, two Docker clusters; plus a prepared HPC/Slurm tier),
 comparing accuracy against training/prediction time. The final report is in
 [`report/REPORT.md`](report/REPORT.md).
 
-Companion docs: [`RATIONALE.md`](RATIONALE.md) explains *why* each decision was
-made; [`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md) is the master plan for the
+Companion docs: [`RUNBOOK.md`](RUNBOOK.md) is the copy-paste guide to running
+every model on every compute tier (local, standalone, Docker, HPC);
+[`RATIONALE.md`](RATIONALE.md) explains *why* each decision was made;
+[`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md) is the master plan for the
 compute-environment × model study; [`PROGRESS.md`](PROGRESS.md) tracks status
 and the HPC full-dataset plan.
 
