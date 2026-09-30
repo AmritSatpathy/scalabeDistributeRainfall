@@ -8,10 +8,10 @@ orchestrator and benchmark harness select configs purely by name.
 from __future__ import annotations
 
 from .base import ComputeConfig
-from . import local_configs, standalone_configs, docker_configs
+from . import local_configs, standalone_configs, docker_configs, hpc_configs
 
 _REGISTRY: dict[str, ComputeConfig] = {}
-for _mod in (local_configs, standalone_configs, docker_configs):
+for _mod in (local_configs, standalone_configs, docker_configs, hpc_configs):
     for _cfg in _mod.CONFIGS:
         _REGISTRY[_cfg.name] = _cfg
 
