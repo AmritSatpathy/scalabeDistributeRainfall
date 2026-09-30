@@ -10,6 +10,16 @@ from __future__ import annotations
 from .base import ModelSpec
 from . import gbt, random_forest, logreg, linear_svc, mlp, fm
 
+# Deep-learning specs are imported lazily: importing them pulls in torch, which
+# we don't want to require for pure-MLlib runs. They register only if torch is
+# importable.
+_DEEP_SPECS = []
+try:
+    from . import lstm, tcn  # noqa: F401
+    _DEEP_SPECS = [lstm.SPEC, tcn.SPEC]
+except Exception:  # torch not installed / unavailable
+    _DEEP_SPECS = []
+
 # name -> ModelSpec
 _REGISTRY: dict[str, ModelSpec] = {
     spec.name: spec
@@ -20,6 +30,7 @@ _REGISTRY: dict[str, ModelSpec] = {
         linear_svc.SPEC,
         mlp.SPEC,
         fm.SPEC,
+        *_DEEP_SPECS,
     )
 }
 
