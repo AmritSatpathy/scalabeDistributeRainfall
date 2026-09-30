@@ -101,6 +101,12 @@ def clean(df: DataFrame, sample_days: int | None) -> DataFrame:
     df = df.withColumn("upd_ts", F.to_timestamp("update_timestamp"))
 
     # ---- validity filter ---------------------------------------------------
+    # Drop rows we cannot trust or use:
+    #   * null station_id / ts  -> can't attribute or order the reading
+    #   * null rain_mm          -> nothing to measure (not safe to impute)
+    #   * rain_mm < 0           -> physically impossible (data error)
+    #   * rain_mm > MAX_5MIN_MM -> beyond any credible 5-min intensity; a single
+    #                              bad value would otherwise skew sums/model
     df = df.filter(
         F.col("station_id").isNotNull()
         & F.col("ts").isNotNull()
@@ -114,6 +120,10 @@ def clean(df: DataFrame, sample_days: int | None) -> DataFrame:
         df = df.withColumn("doy", F.dayofyear("ts")).filter(F.col("doy") <= sample_days).drop("doy")
 
     # ---- de-duplicate on (station_id, ts) ---------------------------------
+    # The feed can re-issue a reading as corrections arrive. We keep exactly one
+    # row per (station, 5-min timestamp): the one with the LATEST update_timestamp
+    # (the most recent correction). row_number()==1 over that ordering picks it.
+    # Exactly one reading per slot is essential for correct rolling sums later.
     w = Window.partitionBy("station_id", "ts").orderBy(F.col("upd_ts").desc_nulls_last())
     df = (
         df.withColumn("_rn", F.row_number().over(w))

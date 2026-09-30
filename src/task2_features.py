@@ -51,12 +51,19 @@ DEFAULT_THRESHOLDS = [0.2, 1.0, 2.0, 5.0, 10.0]
 def add_time_features(df):
     """Cyclical + categorical calendar features (leakage-free)."""
     two_pi = 2 * math.pi
+    # Hour and month are CYCLICAL: hour 23 is adjacent to hour 0, and December
+    # is adjacent to January. Encoding each as a (sin, cos) pair places these
+    # values next to each other on a circle, so the model doesn't see a false
+    # "jump" from 23->0 that a raw integer would imply.
     df = (
         df.withColumn("hour_sin", F.sin(F.col("hour") / 24.0 * two_pi))
         .withColumn("hour_cos", F.cos(F.col("hour") / 24.0 * two_pi))
         .withColumn("month_sin", F.sin((F.col("month") - 1) / 12.0 * two_pi))
         .withColumn("month_cos", F.cos((F.col("month") - 1) / 12.0 * two_pi))
+        # dayofweek is 1=Sun..7=Sat, so 1 and 7 are the weekend.
         .withColumn("is_weekend", F.col("dayofweek").isin(1, 7).cast("double"))
+        # Singapore's two monsoon regimes drive the seasonal rainfall pattern
+        # seen in Task 1: Northeast (Dec-Mar) and Southwest (Jun-Sep).
         .withColumn("ne_monsoon", F.col("month").isin(12, 1, 2, 3).cast("double"))
         .withColumn("sw_monsoon", F.col("month").isin(6, 7, 8, 9).cast("double"))
     )
@@ -135,7 +142,16 @@ BASE_FEATURE_COLS = [
 
 
 def explode_thresholds(df, thresholds=DEFAULT_THRESHOLDS):
-    """Emit one labelled row per candidate threshold."""
+    """Emit one labelled row per candidate threshold.
+
+    This is what lets a SINGLE model answer any threshold: each base
+    observation is duplicated once per candidate threshold, with the threshold
+    carried as a feature column and the label recomputed against it. So one row
+    with true 30-min rain = 3 mm becomes N rows (N = len(thresholds)) with
+    labels [3 > t for t in thresholds]. Downside: this multiplies the row count
+    by N (the "explosion" that drives Task 2's memory use).
+    """
+    # array(t0, t1, ...) + explode = one output row per threshold value.
     thr_col = F.explode(F.array([F.lit(float(t)) for t in thresholds]))
     df = df.withColumn("threshold", thr_col)
     df = df.withColumn(

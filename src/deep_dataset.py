@@ -82,7 +82,12 @@ def build_sequences(spark, features_or_clean_path, thresholds, test_year,
         pdf = e.select(*(STATIC_COLS + lag_cols + ["threshold", "label"])).toPandas()
         print(f"  {split_name}: {len(pdf):,} sequence rows")
 
-        # sequence: oldest -> newest  => reverse lag order (lag{L-1} ... lag0)
+        # lag_cols were built as [lag0, lag1, ..., lag{L-1}] where lag0 = the
+        # reading AT the prediction time and lagK = K steps (5*K min) earlier.
+        # An RNN/CNN expects the sequence in chronological order (oldest first),
+        # so we REVERSE the lag columns -> [lag{L-1}, ..., lag0] before reshaping
+        # to [batch, seq_len, 1]. Getting this order wrong would feed time
+        # backwards and quietly hurt the model.
         seq = pdf[list(reversed(lag_cols))].to_numpy(dtype=np.float32)
         X_seq = seq.reshape(len(pdf), seq_len, 1)
         X_stat = pdf[STATIC_COLS + ["threshold"]].to_numpy(dtype=np.float32)
