@@ -1,0 +1,44 @@
+# Dockerized Spark Standalone cluster (compute tier E2).
+#
+#   docker compose -f docker/docker-compose.yml up -d --build --scale spark-worker=2
+#   docker/submit.sh gbt docker-2w --sample-fraction 0.15 --max-train-rows 1000000
+#   docker compose -f docker/docker-compose.yml down
+#
+# One master + N scalable worker containers on a Docker network. Master/worker
+# daemons are launched via the pyspark-bundled `spark-class` (same mechanism as
+# the host standalone cluster). The project root is bind-mounted at /project in
+# every container, so src/ and the cleaned Parquet under data/ are visible to
+# the driver (run inside the master) and the executors (workers).
+#
+# Keep the compute-config executor_memory (2g in docker-2w/3w) <= worker memory
+# (3g below) to avoid the "requires more resource than any Workers" hang.
+
+services:
+  spark-master:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: rainfall-spark:py312-spark353
+    container_name: rainfall-spark-master
+    command: >
+      spark-class org.apache.spark.deploy.master.Master
+      --host spark-master --port 7077 --webui-port 8080
+    ports:
+      - "8080:8080"   # master web UI
+      - "7077:7077"   # master RPC
+    volumes:
+      - ..:/project
+
+  spark-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: rainfall-spark:py312-spark353
+    depends_on:
+      - spark-master
+    command: >
+      spark-class org.apache.spark.deploy.worker.Worker
+      --cores 2 --memory 3g --work-dir /tmp/spark-work
+      spark://spark-master:7077
+    volumes:
+      - ..:/project

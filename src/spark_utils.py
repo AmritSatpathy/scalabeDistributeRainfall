@@ -86,6 +86,16 @@ def get_spark(
 
     # Executor settings only make sense on a real cluster; apply them only when
     # provided (arg or env), so local[*] runs are unaffected.
+    # When the driver runs inside a container (Docker cluster), executors in
+    # other containers must be able to connect back to it. SPARK_DRIVER_HOST
+    # (set to a resolvable service name, e.g. "spark-master") makes that work;
+    # without it Spark advertises the container's internal hostname and the job
+    # hangs on "Initial job has not accepted any resources".
+    driver_host = os.environ.get("SPARK_DRIVER_HOST")
+    if driver_host:
+        builder = builder.config("spark.driver.host", driver_host)
+        builder = builder.config("spark.driver.bindAddress", "0.0.0.0")
+
     exec_mem = _first(os.environ.get("SPARK_EXECUTOR_MEMORY"), executor_memory)
     if exec_mem:
         builder = builder.config("spark.executor.memory", str(exec_mem))
