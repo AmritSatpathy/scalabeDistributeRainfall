@@ -66,6 +66,52 @@ def bar_train_time(df, primary):
     plt.close(fig)
 
 
+def bar_auc_all_models(df):
+    """AUC comparison across ALL models regardless of compute config.
+
+    Picks one row per model (highest AUC-ROC) so MLlib (CPU) and deep (GPU)
+    models appear together - the headline model-comparison figure.
+    """
+    d = df.sort_values("auc_roc", ascending=False).drop_duplicates(
+        subset=["model"], keep="first"
+    ).sort_values("auc_pr", ascending=False)
+    x = np.arange(len(d))
+    w = 0.38
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.bar(x - w / 2, d["auc_roc"], w, label="AUC-ROC", color="#1d3557")
+    ax.bar(x + w / 2, d["auc_pr"], w, label="AUC-PR", color="#e63946")
+    ax.set_xticks(x)
+    labels = [f"{m}\n({c})" for m, c in zip(d["model"], d["compute_config"])]
+    ax.set_xticklabels(labels, fontsize=9)
+    ax.set_ylim(0, 1)
+    ax.set_ylabel("Area under curve")
+    ax.set_xlabel("Model (compute)")
+    ax.set_title("All models: AUC-ROC vs AUC-PR (best config per model)")
+    ax.legend()
+    ax.grid(axis="y", alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(fig_path("model_auc_all.png"), dpi=130)
+    plt.close(fig)
+
+
+def bar_train_time_all_models(df):
+    """Train time across ALL models (best/only config per model)."""
+    d = df.sort_values("auc_roc", ascending=False).drop_duplicates(
+        subset=["model"], keep="first"
+    ).sort_values("train_secs")
+    fig, ax = plt.subplots(figsize=(10, 5))
+    colors = ["#2a9d8f" if c == "gpu" else "#457b9d" for c in d["compute_config"]]
+    ax.bar(d["model"], d["train_secs"], color=colors)
+    ax.set_ylabel("Train time (s)")
+    ax.set_xlabel("Model")
+    ax.set_title("Training time by model (green = GPU deep model, blue = MLlib CPU)")
+    for xi, v in zip(range(len(d)), d["train_secs"]):
+        ax.text(xi, v, f"{v:.0f}", ha="center", va="bottom", fontsize=9)
+    fig.tight_layout()
+    fig.savefig(fig_path("model_train_time_all.png"), dpi=130)
+    plt.close(fig)
+
+
 def bar_auc(df, primary):
     d = df[df["compute_config"] == primary].sort_values("auc_pr", ascending=False)
     if d.empty:
@@ -149,6 +195,8 @@ def main() -> None:
 
     bar_train_time(df, args.primary_compute)
     bar_auc(df, args.primary_compute)
+    bar_auc_all_models(df)
+    bar_train_time_all_models(df)
     heatmap(df, "train_secs", "Train time (s): compute-config x model", "time_heatmap_train.png")
     heatmap(df, "predict_secs", "Predict time (s): compute-config x model", "time_heatmap_predict.png")
     scaling(df)
