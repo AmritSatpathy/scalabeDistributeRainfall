@@ -1,11 +1,11 @@
 # PROGRESS — where this project stands
 
 > Status handoff for an AI agent or teammate resuming the work.
-> Last updated: data pipeline + Task 1 complete; Task 2 code complete and
-> **verified end-to-end** (trained + evaluated + inference sanity-checked) on a
-> smoke sample. Remaining: one proper local training run for final numbers,
-> the Task 2 plot, and the written report. Full-dataset (uncapped) training is
-> deferred to an HPC cluster — plan included below.
+> Last updated: data pipeline + Task 1 complete; Task 2 complete end-to-end —
+> **full-coverage local training run done** (GBT + LogReg, final metrics below),
+> model saved, AUC-vs-threshold figure produced. Remaining: the written report
+> (+ member IDs), an optional GPU LSTM comparison, and the eventual uncapped
+> HPC run. Plan for HPC included below.
 
 ## TL;DR
 
@@ -104,26 +104,36 @@ Files:
 - Conclusion: model is context-sensitive and uses the threshold feature
   correctly. The earlier "all ~3%" was because those inputs were genuinely dry.
 
+## FULL-COVERAGE LOCAL RUN — DONE (final reported numbers)
+
+Ran `task2_build_features.py` (full data) then `task2_train.py` for both models
+(logreg first, GBT last so the saved model is the GBT). Test year = 2024,
+train = 2017–2023, 8M-row training cap.
+
+- Base feature rows: **47,636,919**. Train (capped): **7,997,496**;
+  test (full 2024): **31,872,380**. Train positive rate ≈ **1.93 %**.
+- **GBT overall:** AUC-ROC **0.924**, AUC-PR **0.584**, acc 0.986, F1 0.984.
+- Per-threshold (GBT AUC-ROC / AUC-PR): 0.2→0.904/0.660, 1.0→0.905/0.577,
+  2.0→0.895/0.505, 5.0→0.898/0.398, 10.0→0.905/0.302.
+- **GBT beats LogReg at every threshold** on both AUC-ROC (~+0.03–0.04) and
+  AUC-PR (~+0.05–0.10) — justifies the non-linear model. LogReg per-threshold
+  numbers are recorded in `src/task2_plot.py` (`LOGREG_METRICS`).
+- Saved: `models/rainfall_model` (GBT PipelineModel) + `models/model_metadata.json`.
+- Figure: `output/figures/model_auc_by_threshold.png`; comparison table
+  `output/tables/model_comparison_by_threshold.csv`.
+
 ## WHAT'S LEFT (in order)
 
-1. **One full-coverage local training run** (recommended before the report):
-   ```bash
-   ./.venv/bin/python src/task2_build_features.py                 # full base features
-   ./.venv/bin/python src/task2_train.py --model gbt --test-year 2024
-   ./.venv/bin/python src/task2_train.py --model logreg --test-year 2024   # baseline (run GBT LAST to keep it saved)
-   ```
-   Capture `train rows`, `positive rate`, `OVERALL test metrics`, per-threshold
-   lines. This trains on the full 91-station network (still capped at 8M train
-   rows) → legitimate reported metrics + saved model.
-2. **Task 2 figure:** add a small script to plot AUC-ROC & AUC-PR vs threshold
-   from `output/tables/model_metrics_by_threshold.csv` → `output/figures/`.
-3. **Write the report** (`report/`, PDF-ready markdown): approach, environment,
+1. **Write the report** (`report/`, PDF-ready markdown): approach, environment,
    Task 1 + Task 2 results with figures/tables, model evaluation (AUC etc.),
    AI-usage declaration, limitations, group member names + student IDs.
-4. **Confirm the trained model** is saved under `models/` for submission and
-   committed (it's small, ~276 KB).
-5. **Needed from the user:** group member names + student IDs; confirmation of
-   which run's metrics are "final".
+   Use the numbers above and the figures in `output/figures`.
+2. **Optional (recommended per discussion):** build `task2_lstm.py` — a PyTorch
+   GPU LSTM benchmarked head-to-head with the GBT (same features/label/split/
+   metrics), as supplementary model-comparison + future-work evidence. The GBT
+   remains the graded MLlib deliverable.
+3. **Needed from the user:** group member names + student IDs.
+4. **HPC full uncapped run:** see the cluster plan below (removes the 8M cap).
 
 ## HPC / cluster plan (full uncapped dataset — future work)
 

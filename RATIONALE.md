@@ -177,6 +177,60 @@ reference point: if GBT only marginally beats it, the extra complexity is not
 justified; if it beats it clearly (expected here), that demonstrates the value
 of modelling non-linear interactions. Good practice for the report.
 
+### Why GBT and not an RNN/LSTM (and why the GPU does not change this)
+
+This is a genuinely sequential, autocorrelated problem, so a recurrent model
+(LSTM/GRU) is a legitimate — arguably more natural — contender. We are honest
+about that: GBT is chosen primarily because it is the **required-library**
+choice, not because RNNs are unsuitable.
+
+- **The assignment requires Spark MLlib, and MLlib itself has no RNN/LSTM
+  model class.** This is a statement about the *library*, not about Spark in
+  general. `pyspark.ml`'s only neural model is a plain feedforward
+  `MultilayerPerceptronClassifier`; there is no recurrent layer. LSTMs *can*
+  absolutely be used in a Spark-based workflow — either by using Spark to
+  clean/engineer/window the data and then training the LSTM in TensorFlow/
+  PyTorch (on GPU), or via bridge libraries that run Keras/TF/PyTorch on a Spark
+  cluster (Elephas, BigDL/Analytics-Zoo, TensorFlowOnSpark, Horovod-on-Spark,
+  `spark-tensorflow-distributor`). The point is only that the LSTM *model* would
+  then live outside `pyspark.ml`. GBT keeps the graded model strictly inside
+  MLlib as the brief asks.
+- **A CUDA GPU does not accelerate Spark MLlib.** MLlib is CPU/JVM-based; GBT and
+  Logistic Regression do not use CUDA at all, so an NVIDIA GPU sits idle for the
+  MLlib pipeline. Actually using the GPU would require training outside Spark
+  (e.g. a PyTorch LSTM) or a GPU-accelerated stack (XGBoost-on-Spark with GPU,
+  or the NVIDIA RAPIDS Spark plugin) — all of which are extra infrastructure,
+  not MLlib. In short: the GPU is only useful here if we deliberately step
+  outside the required library.
+- **The threshold-as-feature trick is trivial for GBT** (just another input
+  column, so one model serves any threshold) but more awkward for an RNN, which
+  would need the threshold fused into the final dense layer or per-threshold
+  models.
+- **Where an RNN would genuinely help** (and where we recommend it as future
+  work): longer prediction horizons where temporal *evolution* matters more than
+  the current state; and a **multivariate spatiotemporal** model that ingests all
+  stations jointly (e.g. ConvLSTM or graph-temporal networks) to learn how storm
+  cells move across the island — this is what operational precipitation nowcasting
+  systems use, and it is the setting where deep learning clearly beats tabular
+  GBT. With gridded radar/satellite input rather than point gauges, CNN/ConvLSTM
+  would dominate outright.
+- **Planned comparison.** To test this properly rather than assert it, the
+  intended extension is an **optional PyTorch LSTM (`task2_lstm.py`) trained on
+  the GPU**, using the same temporal features, the same 30-minute label, the same
+  temporal train/test split, and the same AUC-ROC / AUC-PR metrics — a like-for-
+  like benchmark against the MLlib GBT. GBT remains the graded MLlib deliverable;
+  the LSTM is supplementary evidence for the report's model-comparison and
+  future-work discussion.
+
+> **Bottom line.** "LSTMs are not for Spark" would be *wrong* — Spark is
+> routinely paired with LSTMs (via TF/PyTorch or bridge libraries), and Spark
+> can do the large-scale data prep for them. The precise, correct statement is:
+> **Spark's MLlib library has no LSTM model class**, so an LSTM would be a
+> non-MLlib model even in a Spark workflow. Given the brief mandates MLlib and
+> the GPU cannot accelerate MLlib anyway, GBT is the right *graded* choice; the
+> LSTM is the right *comparison/future-work* choice, ideally benchmarked head-to
+> -head on the GPU.
+
 **Why *not* one-hot encode the station.** With ~91 stations, one-hot makes the
 feature vector wide and forces GBT to densify it, which was memory-heavy.
 Keeping station as a single indexed categorical column (with `maxBins ≥ 91` so

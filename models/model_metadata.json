@@ -1,0 +1,86 @@
+{
+  "model_kind": "gbt",
+  "horizon_minutes": 30,
+  "base_feature_cols": [
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "is_weekend",
+    "ne_monsoon",
+    "sw_monsoon",
+    "lat",
+    "lon",
+    "rain_mm",
+    "lag_5m_mm",
+    "roll_30m_mm",
+    "roll_60m_mm",
+    "roll_180m_mm",
+    "mins_since_rain"
+  ],
+  "uses_threshold_as_feature": true,
+  "train_thresholds": [
+    0.2,
+    1.0,
+    2.0,
+    5.0,
+    10.0
+  ],
+  "test_year": 2024,
+  "train_years": [
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023
+  ],
+  "max_train_rows": 8000000,
+  "sample_fraction": 1.0,
+  "n_train": 7997496,
+  "n_test": 31872380,
+  "metrics_overall": {
+    "auc_roc": 0.9244974068927411,
+    "auc_pr": 0.5841451613399269,
+    "accuracy": 0.9855166761942472,
+    "f1": 0.9835309391624792
+  },
+  "metrics_by_threshold": [
+    {
+      "threshold": 0.2,
+      "auc_roc": 0.9039331087194395,
+      "auc_pr": 0.6603603741279115,
+      "accuracy": 0.9694677648798113,
+      "f1": 0.9660294608259343
+    },
+    {
+      "threshold": 1.0,
+      "auc_roc": 0.9053771010690377,
+      "auc_pr": 0.5773566227423707,
+      "accuracy": 0.9819812640286041,
+      "f1": 0.9797765302697352
+    },
+    {
+      "threshold": 2.0,
+      "auc_roc": 0.8952552386564541,
+      "auc_pr": 0.5051750536264925,
+      "accuracy": 0.9870005001195392,
+      "f1": 0.9847347451002677
+    },
+    {
+      "threshold": 5.0,
+      "auc_roc": 0.8976598178972395,
+      "auc_pr": 0.39812224693054943,
+      "accuracy": 0.992741521028552,
+      "f1": 0.9912173001814245
+    },
+    {
+      "threshold": 10.0,
+      "auc_roc": 0.9047307584228265,
+      "auc_pr": 0.30244060901084063,
+      "accuracy": 0.9963923309147293,
+      "f1": 0.9955046120164045
+    }
+  ]
+}
