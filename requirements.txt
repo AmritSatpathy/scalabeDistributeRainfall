@@ -9,6 +9,3 @@ setuptools<81
 #   pip install torch --index-url https://download.pytorch.org/whl/cu124
 # CPU-only also works (slower): pip install torch
 torch>=2.2
-
-# Report: render report/REPORT.md -> self-contained HTML (Print -> Save as PDF).
-markdown

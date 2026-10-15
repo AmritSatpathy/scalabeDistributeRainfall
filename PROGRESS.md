@@ -3,9 +3,8 @@
 > Status handoff for an AI agent or teammate resuming the work.
 > Last updated: **ALL PHASES COMPLETE.** Data pipeline, Task 1, Task 2 (full-data
 > GBT saved), and the full distributed-computing + model-comparison study are
-> done. Report drafted (`report/REPORT.md` + self-contained `report/REPORT.html`
-> for PDF export). Remaining: fill in group member names/IDs, export the PDF,
-> and merge `feature/distributed-compute` → `mainline`.
+> done. Report written (`report/REPORT.md`). Remaining: fill in group member
+> names/IDs.
 >
 > **Study delivered:** 8 models (6 MLlib + LSTM/TCN on GPU) × 5 compute
 > configs (local[*], standalone-2×2/4×2, docker-2w/3w), all on a single machine.

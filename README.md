@@ -99,7 +99,7 @@ rainTheFall/
 ├── data/{raw,processed}/       # CSVs + Parquet             (git-ignored)
 ├── output/{figures,tables}/    # figures + metric/benchmark CSVs
 ├── models/                     # trained GBT pipeline + LSTM/TCN .pt
-├── report/                     # REPORT.md + REPORT.html (+ build_pdf.py)
+├── report/                     # REPORT.md (project report)
 ├── requirements.txt
 ├── README.md
 ├── RATIONALE.md                # why each choice was made
@@ -244,11 +244,7 @@ docker compose -f docker/docker-compose.yml down
     --results output/tables/benchmark_compute.csv --suffix _compute  # compute study
 ```
 
-### Step 6 — Report
-
-```bash
-./.venv/bin/python report/build_pdf.py   # -> report/REPORT.html (Print -> Save as PDF)
-```
+The written report is in [`report/REPORT.md`](report/REPORT.md).
 
 Example for a tighter machine: `--max-train-rows 4000000`.
 
