@@ -7,9 +7,11 @@
 > for PDF export). Remaining: fill in group member names/IDs, export the PDF,
 > and merge `feature/distributed-compute` → `mainline`.
 >
-> **Study delivered:** 8 models (6 MLlib + LSTM/TCN on GPU) × up to 5 compute
-> configs (local[*], standalone-2×2/4×2, docker-2w/3w) + prepared HPC/Slurm
-> tier. Master plan: [`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md).
+> **Study delivered:** 8 models (6 MLlib + LSTM/TCN on GPU) × 5 compute
+> configs (local[*], standalone-2×2/4×2, docker-2w/3w), all on a single machine.
+> Master plan: [`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md).
+>
+> _Note: an HPC/multi-node tier was considered but dropped — no cluster access._
 
 ## TL;DR
 
@@ -19,10 +21,8 @@
 - **Model verified correct:** dry-context queries → ~3-4% probability,
   wet-context queries → 70-92%; probability drops as the threshold rises at the
   same moment. The threshold-as-feature design works.
-- **Not done yet:** (1) one full-coverage local training run to lock in the
-  reported metrics + saved model, (2) a Task 2 figure (AUC vs threshold),
-  (3) the PDF report, (4) group member names/IDs, (5) the eventual HPC run on
-  the full uncapped dataset.
+- **Remaining:** fill in group member names/IDs in `report/REPORT.md` and
+  export the PDF.
 
 ## Environment (must read before running anything)
 
@@ -136,8 +136,8 @@ enabling deliverables D1–D9, execution order, and verified feasibility) lives
 in **[`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md)** — that is the master plan;
 this section is just the running checklist.
 
-Environments: **E0** `local[*]` (done) · **E1** local Standalone cluster ·
-**E2** Docker Spark cluster · **E3** HPC multi-node · **E4** GPU (deep learning).
+Environments: **E0** `local[*]` · **E1** local Standalone cluster ·
+**E2** Docker Spark cluster · **E4** GPU (deep learning). (All on one machine.)
 Models: **M0** GBT + **M1** LogReg (done) · **M2** RandomForest · **M3** LinearSVC ·
 **M4** MLP (MLlib) · (**M5** FM, **M6** XGBoost-on-Spark = stretch) · **M7** LSTM (GPU).
 
@@ -145,7 +145,7 @@ Models: **M0** GBT + **M1** LogReg (done) · **M2** RandomForest · **M3** Linea
 
 1. **D1 — cluster-ready config.** Parameterise `--master`, executor cores/
    memory, shuffle partitions via CLI/env in `spark_utils.py`/`config.py` so the
-   same scripts run on E0–E3 unchanged. *(unlocks everything else)*
+   same scripts run on E0–E2 unchanged. *(unlocks everything else)*
 2. **D2 — more MLlib models.** Extend `--model` to `rf`, `linsvc`, `mlp`
    (+ optional `fm`) → model-comparison table. Cheap, stays distributed.
 3. **D5 + E1 — local Standalone cluster.** Launch scripts (`cluster/`), run
@@ -159,56 +159,19 @@ Models: **M0** GBT + **M1** LogReg (done) · **M2** RandomForest · **M3** Linea
 6. **D8 + E4 — LSTM on GPU.** Install PyTorch-CUDA (~2.5 GB), build
    `src/task2_lstm.py` (same features/label/split/metrics), benchmark vs GBT.
    *(GPU: RTX 3050 Ti, 4 GB VRAM — modest model/batch sizes.)*
-7. **D7 + E3 — HPC scale-out.** Submit scripts (Slurm/PBS or managed) + staging
-   checklist; run uncapped full-data GBT (removes 8M cap). See HPC plan below.
-8. **D9 — write the report** (`report/`): fold in Task 1, Task 2, the
+7. **D9 — write the report** (`report/`): fold in Task 1, Task 2, the
    cluster-deployment + scaling + model-comparison sections, AI-usage
    declaration, limitations, and group member names + student IDs.
 
-### Honest caveats to carry into the report
-- **E1/E2 on one physical machine will likely be *slower* than E0** (network +
+### Honest caveats carried into the report
+- **E1/E2 on one physical machine are *slower* than E0** (network +
   serialization + container overhead on the same 16 cores / 24 GB). Real
-  speed-up and the uncapped full-data training belong to **E3/HPC**. Measuring
-  and explaining this scale-out-vs-scale-up distinction is itself worth marks.
+  speed-up would need multiple physical nodes; on one box, distribution only
+  adds overhead. Measuring and explaining this scale-out-vs-scale-up distinction
+  is itself worth marks.
 - **4 GB VRAM** bounds the LSTM (E4) to a modest architecture.
-
-### Open decisions (need user input) — mirrors matrix
-1. Final scope: full matrix or trim (e.g. drop M5/M6, defer E3)?
-2. HPC scheduler type: Slurm / PBS / Dataproc / Databricks / EMR?
-3. Approve installing PyTorch-CUDA (~2.5 GB) for the LSTM?
-4. Group member names + student IDs (for the report).
-
-## HPC / cluster plan (full uncapped dataset — future work)
-
-Goal: train on the **full ~240M-row exploded dataset** (48.5M base × 5
-thresholds) without the `--max-train-rows` cap, for the strongest possible
-model.
-
-- **Where:** a Spark cluster — options: Google Cloud Dataproc, Databricks, or a
-  university HPC with Spark/YARN. Any works because the code is plain PySpark
-  with no local-only assumptions beyond paths.
-- **Data staging:** upload `data/processed/rainfall_clean` (Parquet, small &
-  compressed) to cluster storage (GCS/DBFS/HDFS). Do NOT re-upload raw CSVs;
-  Parquet is enough. Alternatively run `download_data.py` + `clean_data.py` on
-  the cluster.
-- **Code changes needed:**
-  - Parameterise input/output paths to the cluster FS (`gs://…`, `dbfs:/…`,
-    `hdfs:/…`) instead of local `data/processed/...`. `src/config.py` is the
-    single place to change; consider adding an env-var / CLI override.
-  - In `spark_utils.get_spark`, drop `master("local[*]")` and the fixed
-    `spark.driver.memory` so the cluster manager (YARN/K8s/Databricks) controls
-    resources; keep the SGT timezone and shuffle-partition settings.
-  - Run `task2_train.py` with `--max-train-rows 0` (disables the cap) and a
-    larger `--shuffle-partitions` (e.g. 400–1000) suited to the cluster.
-- **Suggested cluster size (starting point):** ~4–8 workers, 4 cores / 16–32 GB
-  each (e.g. Dataproc `n2-standard-8`). GBT on ~240M rows is shuffle- and
-  memory-heavy; scale workers if the fit is slow, and raise
-  `spark.sql.shuffle.partitions` accordingly.
-- **Expected differences vs local:** more positives seen per threshold → likely
-  better AUC-PR on rare (high) thresholds; full station/time coverage.
-- **Submit-check:** save the cluster-trained pipeline, copy `models/` and
-  `model_metadata.json` back for the final submission, and update the report's
-  metrics + environment section to describe the cluster config actually used.
+- An HPC/multi-node tier was considered but **dropped (no cluster access)**;
+  the full uncapped training is therefore out of scope.
 
 ## Git
 

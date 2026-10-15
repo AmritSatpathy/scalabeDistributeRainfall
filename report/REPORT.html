@@ -100,8 +100,8 @@ choice is documented in <code>RATIONALE.md</code>; the full experiment plan is i
 </table>
 <p>The pipeline is written to run unchanged across compute tiers: a single helper
 (<code>spark_utils.get_spark</code>) reads the Spark master and executor/driver resources
-from environment variables, so the same code runs on <code>local[*]</code>, a Spark
-Standalone cluster, a Docker cluster, or (prepared) an HPC/Slurm cluster.</p>
+from environment variables, so the same code runs unchanged on <code>local[*]</code>, a
+Spark Standalone cluster, or a Docker Spark cluster.</p>
 <p>Five compute configurations were used for the benchmark study:</p>
 <table>
 <thead>
@@ -151,8 +151,8 @@ Standalone cluster, a Docker cluster, or (prepared) an HPC/Slurm cluster.</p>
 </tr>
 </tbody>
 </table>
-<p>A multi-node HPC tier (Slurm and managed-cluster scripts) is <strong>prepared but not
-executed</strong> — HPC access was not available at submission time (see §7).</p>
+<p>All runs were performed on this single machine; the Spark Standalone and Docker
+tiers run their master and workers as separate processes/containers on it.</p>
 <hr />
 <h2 id="3-data-cleaning">3. Data cleaning</h2>
 <p>The eight yearly CSVs (~7.8 GB) are downloaded via the data.gov.sg
@@ -564,16 +564,20 @@ a same-data comparison — see §7.</p>
 <li><strong>AUC is essentially identical across all configs</strong> (GBT ≈ 0.924 everywhere),
   confirming the compute configuration changes <em>speed</em>, not <em>accuracy</em>.</li>
 </ul>
-<p>The practical implication: genuine training speed-up needs <strong>multiple physical
-nodes</strong> (the HPC tier), not more processes on one machine.</p>
+<p>The practical implication: on a single machine, more distribution adds overhead
+rather than speed; genuine training speed-up would need <strong>multiple physical
+nodes</strong>, not more processes/containers on one box.</p>
 <hr />
 <h2 id="7-limitations-and-future-work">7. Limitations and future work</h2>
 <ul>
 <li><strong>Training-row cap.</strong> To fit GBT within 24 GB, local training is capped at
-  ~8 M rows (of ~240 M after the threshold expansion). The uncapped full-data
-  run is prepared for HPC (<code>hpc/</code>) but not yet executed.</li>
-<li><strong>HPC tier not run.</strong> Slurm and managed-cluster (Dataproc/Databricks) scripts
-  are prepared; a real multi-node speed-up curve awaits cluster access.</li>
+  ~8 M rows (of ~240 M after the threshold expansion). Training on the full
+  uncapped set would require more memory than a single machine provides;
+  reducing the number of thresholds or using fewer features are local options
+  to push this further.</li>
+<li><strong>Single-machine distribution.</strong> All compute tiers ran on one physical
+  machine, so the cluster tiers demonstrate distributed deployment but cannot
+  show real multi-node speed-up (which needs separate physical nodes).</li>
 <li><strong>Deep-model data parity.</strong> The LSTM/TCN trained on a 400 k-row GPU-memory-
   bounded sample, not the full data, so their AUC-PR is understated relative to
   the MLlib models. A larger GPU (the 3050 Ti has only 4 GB VRAM) or distributed
@@ -612,9 +616,9 @@ pipeline on the actual dataset; the AI did not fabricate any results.</p>
 ./.venv/bin/python src/task2_predict.py --station S77 --time &quot;2024-06-15T14:00:00&quot; --threshold 1.0
 </code></pre>
 <p>Benchmark study: <code>src/benchmark.py</code> (MLlib sweep), <code>src/task2_deep.py</code> (GPU
-LSTM/TCN), <code>cluster/</code> (Standalone), <code>docker/</code> (Docker cluster), <code>hpc/</code> (HPC,
-prepared), and <code>src/benchmark_plot.py</code> for the figures. Random seeds are fixed
-and the Spark session time zone is pinned to <code>Asia/Singapore</code>.</p>
+LSTM/TCN), <code>cluster/</code> (Spark Standalone), <code>docker/</code> (Docker cluster), and
+<code>src/benchmark_plot.py</code> for the figures. Random seeds are fixed and the Spark
+session time zone is pinned to <code>Asia/Singapore</code>.</p>
 <p>The trained GBT model is saved under <code>models/rainfall_model/</code> (with
 <code>models/model_metadata.json</code>); the deep models are <code>models/rainfall_lstm.pt</code> and
 <code>models/rainfall_tcn.pt</code>.</p></body></html>

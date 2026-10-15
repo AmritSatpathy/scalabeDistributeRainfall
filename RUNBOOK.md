@@ -7,7 +7,7 @@ with the venv Python (`./.venv/bin/python`).
 - **Models (8):** `gbt`, `rf`, `logreg`, `linsvc`, `mlp`, `fm` (Spark MLlib,
   CPU) + `lstm`, `tcn` (PyTorch, GPU).
 - **Compute tiers (registry names):** `local-all`, `local-2/4/8`,
-  `standalone-2x2`, `standalone-4x2`, `docker-2w`, `docker-3w`, `hpc`.
+  `standalone-2x2`, `standalone-4x2`, `docker-2w`, `docker-3w`.
 
 List everything available at any time:
 
@@ -154,37 +154,7 @@ docker compose -f docker/docker-compose.yml down
 
 ---
 
-## 4. HPC — multi-node cluster (PREPARED, not yet run)
-
-Requires cluster access. Edit the site-specific module/partition lines in
-`hpc/submit_spark_job.slurm` first. See `hpc/README.md`.
-
-### 4a. Spark-on-Slurm (self-managed cluster)
-
-```bash
-# N nodes, 8 cores + 32 GB each, 2h; trailing arg = model
-sbatch --nodes=4 --ntasks-per-node=1 --cpus-per-task=8 --mem=32G \
-       --time=02:00:00 hpc/submit_spark_job.slurm gbt
-
-# multi-node scaling curve: resubmit with --nodes=1,2,4,8
-```
-
-This runs the **UNCAPPED full dataset** (`--max-train-rows 0`) — the point of
-the HPC tier — and writes to `output/tables/benchmark_hpc.csv`.
-
-### 4b. Managed Spark (Dataproc / Databricks / EMR)
-
-```bash
-# stage cleaned Parquet + code to cloud storage, then submit, e.g. Dataproc:
-gcloud dataproc jobs submit pyspark gs://<bucket>/rainfall/src/task2_train.py \
-    --cluster=<cluster> --region=<region> \
-    -- --model gbt --compute hpc --max-train-rows 0 \
-       --features gs://<bucket>/rainfall/features_base
-```
-
----
-
-## 5. Generate the comparison figures
+## 4. Generate the comparison figures
 
 ```bash
 # model-quality study (all 8 models): -> output/figures/model_auc_all.png etc.
@@ -197,7 +167,7 @@ gcloud dataproc jobs submit pyspark gs://<bucket>/rainfall/src/task2_train.py \
 
 ---
 
-## 6. Run EVERYTHING locally in one go (models on local[*] + GPU + figures)
+## 5. Run EVERYTHING locally in one go (models on local[*] + GPU + figures)
 
 ```bash
 cd ~/rainTheFall
@@ -212,7 +182,7 @@ cd ~/rainTheFall
 
 For the full compute-config sweep across tiers, run sections 1c, 2a, 2b, 3a, 3b
 (all writing to `output/tables/benchmark_compute.csv`), then the second command
-in section 5.
+in section 4.
 
 ---
 
@@ -226,6 +196,5 @@ in section 5.
 | Deep model (GPU) | `python src/task2_deep.py --model lstm --epochs 8` |
 | Standalone cluster | `cluster/start_standalone.sh 4 2 3g` then `--compute standalone-4x2` |
 | Docker cluster | `docker compose -f docker/docker-compose.yml up -d --scale spark-worker=2` then `docker/run_sweep.sh docker-2w` |
-| HPC (prepared) | `sbatch ... hpc/submit_spark_job.slurm gbt` |
 | Predict one query | `python src/task2_predict.py --station S77 --time "2024-06-15T14:00:00" --threshold 1.0` |
 | Make figures | `python src/benchmark_plot.py` |

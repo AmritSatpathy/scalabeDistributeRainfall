@@ -343,8 +343,8 @@ file or replace it with a documented lock installation path.
 - **Local/assignment profile:** run a localhost-only MLflow server with SQLite
   as the backend/registry store and a workspace-local artifact directory. Do
   not use the legacy file backend as the authoritative store.
-- **Shared/HPC profile:** use one authenticated tracking server, PostgreSQL for
-  metadata/registry, and durable object storage (GCS/S3/DBFS-compatible storage)
+- **Shared/cluster profile:** use one authenticated tracking server, PostgreSQL
+  for metadata/registry, and durable object storage (GCS/S3-compatible storage)
   for artifacts. Executors do not need database credentials; the driver logs
   through the tracking server.
 - Configure `MLFLOW_TRACKING_URI`, registry URI, experiment name, and artifact
@@ -562,8 +562,10 @@ Only begin after Phases 1–7 pass.
 - Consider an LSTM only as a supplementary benchmark. It is outside MLlib and
   must not delay the required corrected Spark model, calibrated evaluation, or
   report.
-- Treat the uncapped HPC run as an experiment, not automatically “better.” It
-  must beat the capped validated model on untouched 2024 metrics and cost/time.
+- Any larger-scale run (e.g. a higher training-row cap) is an experiment, not
+  automatically "better." It must beat the capped validated model on untouched
+  2024 metrics and cost/time. (A multi-node HPC run is out of scope — no cluster
+  access.)
 
 Acceptance criteria:
 

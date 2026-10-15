@@ -261,8 +261,8 @@ positive class. Reporting them **per threshold** shows how difficulty changes
 multiplies rows 5×, so the full training set is ~200 M+ rows — beyond a single
 machine's memory for GBT. Capping to a random, class-proportional subsample
 keeps the local fit feasible while preserving the label distribution in
-expectation. The uncapped full run is reserved for the HPC cluster (see
-`PROGRESS.md`).
+expectation. Training on the full uncapped set would require more memory than a
+single machine provides.
 
 ---
 

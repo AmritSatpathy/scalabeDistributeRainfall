@@ -4,7 +4,6 @@ The same scripts must run on:
   * E0  local[*]                 (single process, default)
   * E1  local Standalone cluster (spark://host:7077)
   * E2  Docker Spark cluster     (spark://spark-master:7077)
-  * E3  HPC / managed cluster    (yarn, k8s, or a provided master)
 
 Rather than hard-coding ``master("local[*]")``, every deployment knob is read
 from an environment variable (with a sensible local default) so no code changes
@@ -13,7 +12,7 @@ scripts / docker compose which set them for you).
 
 Environment variables honoured
 ------------------------------
-  SPARK_MASTER            e.g. local[*] (default), spark://host:7077, yarn, k8s://...
+  SPARK_MASTER            e.g. local[*] (default) or spark://host:7077
   SPARK_DRIVER_MEMORY     e.g. 20g  (default 10g)
   SPARK_EXECUTOR_MEMORY   e.g. 4g   (cluster mode; unset -> not applied)
   SPARK_EXECUTOR_CORES    e.g. 2    (cluster mode; unset -> not applied)

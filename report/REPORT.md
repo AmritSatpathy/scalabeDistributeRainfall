@@ -53,8 +53,8 @@ choice is documented in `RATIONALE.md`; the full experiment plan is in
 
 The pipeline is written to run unchanged across compute tiers: a single helper
 (`spark_utils.get_spark`) reads the Spark master and executor/driver resources
-from environment variables, so the same code runs on `local[*]`, a Spark
-Standalone cluster, a Docker cluster, or (prepared) an HPC/Slurm cluster.
+from environment variables, so the same code runs unchanged on `local[*]`, a
+Spark Standalone cluster, or a Docker Spark cluster.
 
 Five compute configurations were used for the benchmark study:
 
@@ -67,8 +67,8 @@ Five compute configurations were used for the benchmark study:
 | `docker-3w` | `spark://spark-master` | 6 | 3 worker containers |
 | `gpu` | — (PyTorch) | 1 GPU | deep models only |
 
-A multi-node HPC tier (Slurm and managed-cluster scripts) is **prepared but not
-executed** — HPC access was not available at submission time (see §7).
+All runs were performed on this single machine; the Spark Standalone and Docker
+tiers run their master and workers as separate processes/containers on it.
 
 ---
 
@@ -315,18 +315,22 @@ Findings (a textbook **scale-out vs scale-up** result):
 - **AUC is essentially identical across all configs** (GBT ≈ 0.924 everywhere),
   confirming the compute configuration changes *speed*, not *accuracy*.
 
-The practical implication: genuine training speed-up needs **multiple physical
-nodes** (the HPC tier), not more processes on one machine.
+The practical implication: on a single machine, more distribution adds overhead
+rather than speed; genuine training speed-up would need **multiple physical
+nodes**, not more processes/containers on one box.
 
 ---
 
 ## 7. Limitations and future work
 
 - **Training-row cap.** To fit GBT within 24 GB, local training is capped at
-  ~8 M rows (of ~240 M after the threshold expansion). The uncapped full-data
-  run is prepared for HPC (`hpc/`) but not yet executed.
-- **HPC tier not run.** Slurm and managed-cluster (Dataproc/Databricks) scripts
-  are prepared; a real multi-node speed-up curve awaits cluster access.
+  ~8 M rows (of ~240 M after the threshold expansion). Training on the full
+  uncapped set would require more memory than a single machine provides;
+  reducing the number of thresholds or using fewer features are local options
+  to push this further.
+- **Single-machine distribution.** All compute tiers ran on one physical
+  machine, so the cluster tiers demonstrate distributed deployment but cannot
+  show real multi-node speed-up (which needs separate physical nodes).
 - **Deep-model data parity.** The LSTM/TCN trained on a 400 k-row GPU-memory-
   bounded sample, not the full data, so their AUC-PR is understated relative to
   the MLlib models. A larger GPU (the 3050 Ti has only 4 GB VRAM) or distributed
@@ -373,9 +377,9 @@ python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 ```
 
 Benchmark study: `src/benchmark.py` (MLlib sweep), `src/task2_deep.py` (GPU
-LSTM/TCN), `cluster/` (Standalone), `docker/` (Docker cluster), `hpc/` (HPC,
-prepared), and `src/benchmark_plot.py` for the figures. Random seeds are fixed
-and the Spark session time zone is pinned to `Asia/Singapore`.
+LSTM/TCN), `cluster/` (Spark Standalone), `docker/` (Docker cluster), and
+`src/benchmark_plot.py` for the figures. Random seeds are fixed and the Spark
+session time zone is pinned to `Asia/Singapore`.
 
 The trained GBT model is saved under `models/rainfall_model/` (with
 `models/model_metadata.json`); the deep models are `models/rainfall_lstm.pt` and

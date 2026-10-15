@@ -15,16 +15,15 @@ The project has two deliverables:
 It also includes a **distributed-computing + model-comparison benchmark**: the
 prediction task is run across **8 models** (6 Spark MLlib + PyTorch LSTM/TCN on
 GPU) and **5 Spark compute configurations** (single-process, two Spark
-Standalone layouts, two Docker clusters; plus a prepared HPC/Slurm tier),
-comparing accuracy against training/prediction time. The final report is in
+Standalone layouts, two Docker clusters), comparing accuracy against
+training/prediction time. The final report is in
 [`report/REPORT.md`](report/REPORT.md).
 
 Companion docs: [`RUNBOOK.md`](RUNBOOK.md) is the copy-paste guide to running
-every model on every compute tier (local, standalone, Docker, HPC);
+every model on every compute tier (local, Standalone, Docker);
 [`RATIONALE.md`](RATIONALE.md) explains *why* each decision was made;
 [`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md) is the master plan for the
-compute-environment × model study; [`PROGRESS.md`](PROGRESS.md) tracks status
-and the HPC full-dataset plan.
+compute-environment × model study; [`PROGRESS.md`](PROGRESS.md) tracks status.
 
 ---
 
@@ -56,9 +55,8 @@ We use the annual datasets **2017–2024** (~7.8 GB of CSV, ~48.5 M cleaned rows
   (single-node, all cores). Spark driver memory 20 GB for training.
 
 No cluster is required for the pipeline as shipped; it is tuned to run on one
-machine and also runs unchanged on a single Databricks/Dataproc node. Task 2
-caps the training set (see `--max-train-rows`) so it fits in local memory; the
-**full exploded dataset is intended for a multi-node cluster** (future work).
+machine. Task 2 caps the training set (see `--max-train-rows`) so it fits in
+local memory.
 
 > **WSL2 memory note.** WSL2 defaults to ~50 % of host RAM, which was too tight
 > for the GBT fit. We raised it via `C:\Users\<you>\.wslconfig`:
@@ -95,10 +93,9 @@ rainTheFall/
 │   │   └── lstm.py tcn.py       # PyTorch (GPU) sequence models
 │   └── compute/                # COMPUTE-CONFIG registry
 │       ├── local_configs.py standalone_configs.py
-│       └── docker_configs.py hpc_configs.py
+│       └── docker_configs.py
 ├── cluster/                    # local Spark Standalone launch scripts (E1)
 ├── docker/                     # Dockerized Spark cluster (E2)
-├── hpc/                        # HPC/Slurm + managed-cluster scripts (E3, prepared)
 ├── data/{raw,processed}/       # CSVs + Parquet             (git-ignored)
 ├── output/{figures,tables}/    # figures + metric/benchmark CSVs
 ├── models/                     # trained GBT pipeline + LSTM/TCN .pt
@@ -238,9 +235,6 @@ docker compose -f docker/docker-compose.yml up -d --build --scale spark-worker=2
 docker/run_sweep.sh docker-2w
 docker compose -f docker/docker-compose.yml down
 ```
-
-**HPC (prepared, not yet run)** — `hpc/submit_spark_job.slurm` runs the uncapped
-full-data training on a multi-node Slurm cluster; see `hpc/README.md`.
 
 **Figures** from the collected results:
 
