@@ -17,6 +17,8 @@ This diagram set documents the rainfall study as an academic systems-and-model a
 | Arrow labels | Labels sit beside the path without opaque white panels, so the line and arrowhead remain visible. |
 | Long routes | Orthogonal waypoints route long connections around components and reduce crossings. |
 | Logos | Transparent-background Apache Spark, Apache Parquet, Docker and PyTorch marks are scaled prominently while preserving whitespace for labels. |
+| Mathematical notation | Equations are typeset with rendered subscripts, superscripts, summation limits and exponents; unsupported Unicode subscript characters are not used. |
+| Report-scale readability | Figures are composed for their physical A4 placement, with larger labels and reduced wording rather than relying on standalone-image zoom. |
 | Density | Each canvas uses a compact information-bearing region; sparse architectures are reduced to a few strong components rather than stretched across empty space. |
 | Meaning | Solid paths describe data, task or prediction flow; dashed paths describe control, fitting, registration or allocation. |
 | Claim boundary | Deployment diagrams label the shared physical host so process or container distribution is not mistaken for multi-machine scale-out. |
@@ -25,7 +27,7 @@ This diagram set documents the rainfall study as an academic systems-and-model a
 
 | ID | Diagram | Research purpose | Main report location |
 |---|---|---|---|
-| A1 | End-to-end research workflow | Establishes the complete path from annual rainfall files to Task 1 evidence, Task 2 models, and systems experiments. | Computing architecture |
+| A1 | End-to-end research workflow | Establishes a clockwise research path: the data foundation runs across the top, Task 1 and Task 2 descend on the right, and their evidence and model outputs return left into academic synthesis. | Computing architecture |
 | A2 | Distributed data-engineering pipeline | Makes partitioning, shuffle boundaries, materialised features, and small-result collection explicit. | Data and methods |
 | A3 | Local Spark topology | Shows why `local[*]` is multithreaded Spark execution in one JVM rather than a physical cluster. | Execution environments |
 | A4 | Spark Standalone topology | Shows the driver, master, executors, shared host resources, RPC, task dispatch, and shuffle. | Execution environments |
@@ -45,7 +47,7 @@ This diagram set documents the rainfall study as an academic systems-and-model a
 
 | ID | Inputs | Processing and boundaries | Outputs and labels that must be visible |
 |---|---|---|---|
-| A1 | Eight annual CSV collections; station metadata | Ingest and validate in Spark; persist cleaned Parquet; branch to descriptive aggregation and temporal feature construction; fit MLlib models; run bounded sequence experiments | Report figures, saved predictive pipeline, benchmark metrics; 2017–2023 training and 2024 test boundary |
+| A1 | Eight annual CSV collections; station metadata | Ingest and validate in Spark; persist cleaned Parquet; turn clockwise into the two analytical branches; route Task 1 evidence and predictive models right-to-left into synthesis; feed matched systems evidence through a separate dashed path | Report figures, predictive assessment and benchmark metrics; 2017–2023 training and 2024 test boundary |
 | A2 | Raw station-time rainfall records | Parse, type-check and deduplicate; year partition; station/time windows; threshold expansion; explicit shuffle at repartition/window stages; collect only compact summaries | Clean Parquet, materialised features, Task 1 summaries, Task 2 train/test matrices |
 | A3 | Driver program and local data | One JVM contains Spark driver and executor threads; memory, CPU and shuffle files share one host | `local[2/4/8/*]`; no networked worker nodes; local scheduling path |
 | A4 | Driver, Standalone master, shared local filesystem | Master registers workers; driver requests executors; master allocates resources; driver dispatches tasks; executors exchange shuffle blocks | 2×2 and 4×2 layouts; requested cores and heaps; same physical-host boundary |
