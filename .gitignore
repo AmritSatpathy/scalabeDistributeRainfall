@@ -16,6 +16,7 @@ metastore_db/
 derby.log
 cluster/logs/
 cluster/pids/
+output/runs/
 
 # --- OS noise ---
 .DS_Store

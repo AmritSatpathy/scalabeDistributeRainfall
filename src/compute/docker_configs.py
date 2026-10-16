@@ -14,6 +14,14 @@ _MASTER = "spark://spark-master:7077"
 
 CONFIGS = [
     ComputeConfig(
+        name="docker-2x2-matched",
+        master=_MASTER,
+        description="Matched benchmark: 2 containers x 2 cores, 2 GB each, 32 shuffle partitions",
+        driver_memory="4g", executor_memory="2g", executor_cores=2,
+        executor_instances=2, shuffle_partitions=32,
+        launch_hint="docker compose -f docker/docker-compose.yml up -d --scale spark-worker=2",
+    ),
+    ComputeConfig(
         name="docker-2w",
         master=_MASTER,
         description="Docker cluster: 2 worker containers",

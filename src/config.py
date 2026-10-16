@@ -20,6 +20,7 @@ PROCESSED_DIR = os.path.join(DATA_DIR, "processed")  # cleaned Parquet
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "output")
 FIGURES_DIR = os.path.join(OUTPUT_DIR, "figures")
 TABLES_DIR = os.path.join(OUTPUT_DIR, "tables")
+RUNS_DIR = os.path.join(OUTPUT_DIR, "runs")
 
 MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
 REPORT_DIR = os.path.join(PROJECT_ROOT, "report")
@@ -66,6 +67,7 @@ def ensure_dirs() -> None:
         PROCESSED_DIR,
         FIGURES_DIR,
         TABLES_DIR,
+        RUNS_DIR,
         MODELS_DIR,
         REPORT_DIR,
     ):

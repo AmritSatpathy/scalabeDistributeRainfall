@@ -1,130 +1,91 @@
-"""
-Task 2 - Inference: estimate P(next-30-min rainfall > threshold) for a given
-(station, prediction time, threshold).
-
-The trained pipeline needs the same recent-rainfall context features it saw in
-training. We reconstruct those from the cleaned Parquet by taking the readings
-for the station up to (and including) the prediction time, computing the same
-rolling look-back features, and scoring the single row for the requested
-threshold.
-
-Usage
------
-    python src/task2_predict.py --station S77 \
-        --time "2024-06-15T14:00:00" --threshold 1.0
-
-Prints the probability that the station accumulates more than <threshold> mm
-of rain in the 30 minutes after the prediction time.
-"""
+"""Score one station/time/threshold using the exact training feature contract."""
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
 import task2_features as tf  # noqa: E402
+from run_artifacts import RunContext, latest_artifact  # noqa: E402
 from spark_utils import get_spark  # noqa: E402
 
 from pyspark.ml import PipelineModel  # noqa: E402
+from pyspark.ml.feature import VectorAssembler  # noqa: E402
+from pyspark.ml.functions import vector_to_array  # noqa: E402
+from pyspark.ml.regression import IsotonicRegressionModel  # noqa: E402
 from pyspark.sql import functions as F  # noqa: E402
-from pyspark.sql import Window  # noqa: E402
-
-MODEL_DIR = os.path.join(config.MODELS_DIR, "rainfall_model")
 
 
-def compute_feature_row(spark, data_path, station_id, when_ts, threshold):
-    """Build the single feature row for the query, using only data up to when_ts."""
+def compute_feature_row(spark, data_path, station_id, when_ts, threshold, max_staleness_minutes=0):
+    query_ts = F.to_timestamp(F.lit(when_ts))
     df = spark.read.parquet(data_path).filter(F.col("station_id") == station_id)
-    # restrict to a look-back window (a few hours is plenty for our features)
-    df = df.filter(F.col("ts") <= F.to_timestamp(F.lit(when_ts)))
-    df = df.filter(F.col("ts") >= F.to_timestamp(F.lit(when_ts)) - F.expr("INTERVAL 6 HOURS"))
-    if df.limit(1).count() == 0:
-        raise SystemExit(
-            f"No readings for station {station_id} in the 6h before {when_ts}."
-        )
-
-    # recompute calendar features from the prediction timestamp itself
+    df = df.filter((F.col("ts") <= query_ts) & (F.col("ts") >= query_ts - F.expr("INTERVAL 24 HOURS")))
     df = tf.add_time_features(df)
-
-    ts_secs = F.col("ts").cast("long")
-    w = Window.partitionBy("station_id").orderBy(ts_secs)
-    for mins in tf.LAG_WINDOWS_MIN:
-        wb = w.rangeBetween(-(mins * 60), 0)
-        df = df.withColumn(f"roll_{mins}m_mm", F.sum("rain_mm").over(wb))
-    df = df.withColumn("lag_5m_mm", F.coalesce(F.lag("rain_mm", 1).over(w), F.lit(0.0)))
-    is_wet = (F.col("rain_mm") > 0).cast("int")
-    df = df.withColumn("is_wet", is_wet)
-    wet_ts = F.when(F.col("is_wet") == 1, ts_secs)
-    df = df.withColumn(
-        "last_wet_secs",
-        F.max(wet_ts).over(w.rowsBetween(Window.unboundedPreceding, 0)),
+    df = tf.add_history_features(df)
+    candidate = (
+        df.withColumn("staleness_minutes", (query_ts.cast("long") - F.col("ts").cast("long")) / 60.0)
+        .filter(F.col("staleness_minutes") <= float(max_staleness_minutes))
+        .orderBy(F.col("ts").desc()).limit(1)
     )
-    df = df.withColumn(
-        "mins_since_rain",
-        F.when(F.col("last_wet_secs").isNull(), F.lit(1440.0))
-        .otherwise(F.least(F.lit(1440.0), (ts_secs - F.col("last_wet_secs")) / 60.0)),
-    )
-
-    # take the latest available row at/just before the prediction time
-    row = df.orderBy(F.col("ts").desc()).limit(1)
-    row = row.withColumn("threshold", F.lit(float(threshold)))
-    for c in tf.BASE_FEATURE_COLS:
-        row = row.withColumn(c, F.coalesce(F.col(c), F.lit(0.0)))
-    return row
-
-
-def extract_probability(pred_row):
-    """Pull P(label=1) out of the MLlib probability vector."""
-    p = pred_row.select("probability", "prediction").first()
-    prob_vec = p["probability"]
-    return float(prob_vec[1]), float(p["prediction"])
+    if candidate.count() == 0:
+        policy = "exact timestamp" if max_staleness_minutes == 0 else f"≤{max_staleness_minutes} min staleness"
+        raise SystemExit(f"No supported reading for station {station_id} at {when_ts} under policy {policy}.")
+    candidate = candidate.withColumn("threshold", F.lit(float(threshold)))
+    for column in tf.BASE_FEATURE_COLS:
+        candidate = candidate.withColumn(column, F.coalesce(F.col(column), F.lit(0.0)))
+    return candidate
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", default=config.CLEAN_PARQUET)
-    ap.add_argument("--model", default=MODEL_DIR)
-    ap.add_argument("--station", required=True, help="station_id, e.g. S77")
-    ap.add_argument("--time", required=True,
-                    help="prediction time, ISO e.g. 2024-06-15T14:00:00 (SGT)")
-    ap.add_argument("--threshold", type=float, required=True, help="mm over 30 min")
+    ap.add_argument("--data", default=None)
+    ap.add_argument("--model", default=None)
+    ap.add_argument("--calibrator", default=None)
+    ap.add_argument("--station", required=True)
+    ap.add_argument("--time", required=True)
+    ap.add_argument("--threshold", type=float, required=True)
+    ap.add_argument("--max-staleness-minutes", type=int, default=0)
+    ap.add_argument("--hash-mode", choices=["full", "metadata"], default="metadata")
     args = ap.parse_args()
+    args.data = args.data or latest_artifact("clean", "clean_parquet") or config.CLEAN_PARQUET
+    args.model = args.model or latest_artifact("train", "model") or os.path.join(config.MODELS_DIR, "rainfall_model")
+    args.calibrator = args.calibrator or latest_artifact("train", "calibrator")
+    run = RunContext("predict", vars(args), hash_mode=args.hash_mode)
+    run.record_input("clean_parquet", args.data)
+    run.record_input("model", args.model)
+    if args.calibrator:
+        run.record_input("calibrator", args.calibrator)
 
     spark = get_spark("task2_predict", driver_memory="6g", shuffle_partitions=16)
     model = PipelineModel.load(args.model)
-
-    row = compute_feature_row(spark, args.data, args.station, args.time, args.threshold)
-
-    # --- diagnostic: show the exact feature row being scored --------------
-    diag = row.select(
-        "ts", "hour", "rain_mm", "lag_5m_mm",
-        "roll_30m_mm", "roll_60m_mm", "roll_180m_mm", "mins_since_rain",
-    ).first()
-
-    pred = model.transform(row)
-    prob, label = extract_probability(pred)
-
-    print("=" * 60)
-    print(f"Station    : {args.station}")
-    print(f"Time (SGT) : {args.time}")
-    print(f"Threshold  : {args.threshold} mm over next 30 min")
-    print("-" * 60)
-    print("Feature row actually scored (context up to prediction time):")
-    print(f"  matched reading ts : {diag['ts']}  (hour={diag['hour']})")
-    print(f"  rain_mm (this 5min): {diag['rain_mm']:.3f}")
-    print(f"  lag_5m_mm          : {diag['lag_5m_mm']:.3f}")
-    print(f"  roll_30m_mm        : {diag['roll_30m_mm']:.3f}")
-    print(f"  roll_60m_mm        : {diag['roll_60m_mm']:.3f}")
-    print(f"  roll_180m_mm       : {diag['roll_180m_mm']:.3f}")
-    print(f"  mins_since_rain    : {diag['mins_since_rain']:.1f}")
-    print("-" * 60)
-    print(f"P(rain > {args.threshold} mm in next 30 min) = {prob:.4f}")
-    print(f"Predicted class (0.5 cut)                = {int(label)}")
-    print("=" * 60)
-
-    spark.stop()
+    row = compute_feature_row(spark, args.data, args.station, args.time, args.threshold, args.max_staleness_minutes)
+    pred = model.transform(row).withColumn("raw_probability", vector_to_array("probability")[1])
+    if args.calibrator:
+        assembler = VectorAssembler(inputCols=["raw_probability"], outputCol="calibration_features")
+        calibrator = IsotonicRegressionModel.load(args.calibrator)
+        pred = calibrator.transform(assembler.transform(pred))
+    else:
+        pred = pred.withColumn("calibrated_probability", F.col("raw_probability"))
+    result = pred.select(
+        "ts", "staleness_minutes", "raw_probability", "calibrated_probability",
+        "rain_mm", "lag_5m_mm", "lag_5m_available", "roll_30m_mm",
+        "roll_60m_mm", "roll_180m_mm", "mins_since_rain",
+    ).first().asDict()
+    payload = {
+        "station_id": args.station, "requested_time_sgt": args.time,
+        "forecast_origin_sgt": str(result["ts"]), "staleness_minutes": result["staleness_minutes"],
+        "threshold_mm": args.threshold, "raw_probability": result["raw_probability"],
+        "calibrated_probability": result["calibrated_probability"],
+        "feature_diagnostics": {k: result[k] for k in (
+            "rain_mm", "lag_5m_mm", "lag_5m_available", "roll_30m_mm",
+            "roll_60m_mm", "roll_180m_mm", "mins_since_rain")},
+    }
+    print(json.dumps(payload, indent=2, default=str))
+    run.write_json("prediction", payload)
+    spark.stop(); run.finalize()
 
 
 if __name__ == "__main__":

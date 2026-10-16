@@ -11,6 +11,13 @@ from .base import ComputeConfig
 
 CONFIGS = [
     ComputeConfig(
+        name="local-4-matched",
+        master="local[4]",
+        description="Matched benchmark: 4 compute cores, 4 GB driver, 32 shuffle partitions",
+        driver_memory="4g",
+        shuffle_partitions=32,
+    ),
+    ComputeConfig(
         name="local-all",
         master="local[*]",
         description="Single process, all cores (16)",

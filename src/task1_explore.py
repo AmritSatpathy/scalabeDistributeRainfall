@@ -29,19 +29,22 @@ import matplotlib.pyplot as plt  # noqa: E402
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
 from spark_utils import get_spark, save_table  # noqa: E402
+from run_artifacts import RunContext, latest_artifact, publish_copy  # noqa: E402
 
 from pyspark.sql import functions as F  # noqa: E402
 
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+ACTIVE_FIGURES_DIR = config.FIGURES_DIR
+ACTIVE_TABLES_DIR = config.TABLES_DIR
 
 
 def fig_path(name: str) -> str:
-    return os.path.join(config.FIGURES_DIR, name)
+    return os.path.join(ACTIVE_FIGURES_DIR, name)
 
 
 def tbl_path(name: str) -> str:
-    return os.path.join(config.TABLES_DIR, name)
+    return os.path.join(ACTIVE_TABLES_DIR, name)
 
 
 # ---------------------------------------------------------------------------
@@ -291,12 +294,122 @@ def intensity_distribution(df):
     return pdf_q, pdf_h
 
 
+def coverage_normalised_analysis(df, completeness_threshold=0.95,
+                                 stable_year_coverage=0.90):
+    """Coverage audit, stable cohort, and heavy-rain rates with denominators."""
+    expected_per_day = 24 * 60 // config.INTERVAL_MINUTES
+    daily = (
+        df.groupBy("year", "date", "station_id")
+        .agg(F.count("*").alias("observed_intervals"), F.sum("rain_mm").alias("daily_mm"))
+        .withColumn("expected_intervals", F.lit(expected_per_day))
+        .withColumn("completeness", F.col("observed_intervals") / F.col("expected_intervals"))
+        .withColumn("eligible", F.col("completeness") >= F.lit(completeness_threshold))
+    )
+    annual_coverage = (
+        daily.groupBy("year").agg(
+            F.count("*").alias("observed_station_days"),
+            F.sum(F.col("eligible").cast("long")).alias("eligible_station_days"),
+            F.sum("observed_intervals").alias("observed_intervals"),
+            F.sum("expected_intervals").alias("expected_intervals"),
+            F.countDistinct("station_id").alias("stations_observed"),
+        ).withColumn("interval_coverage", F.col("observed_intervals") / F.col("expected_intervals"))
+        .orderBy("year")
+    )
+    station_year = (
+        df.groupBy("year", "station_id").agg(
+            F.count("*").alias("observed_intervals"),
+            F.sum("rain_mm").alias("annual_mm"),
+        ).withColumn(
+            "days_in_year",
+            F.dayofyear(F.to_date(F.concat(F.col("year"), F.lit("-12-31"))))
+        ).withColumn("expected_intervals", F.col("days_in_year") * expected_per_day)
+        .withColumn("year_coverage", F.col("observed_intervals") / F.col("expected_intervals"))
+    )
+    stable_ids = (
+        station_year.groupBy("station_id").agg(
+            F.countDistinct("year").alias("years_present"),
+            F.min("year_coverage").alias("min_year_coverage"),
+        ).filter(
+            (F.col("years_present") == len(config.YEARS))
+            & (F.col("min_year_coverage") >= F.lit(stable_year_coverage))
+        ).select("station_id")
+    )
+    all_annual = station_year.groupBy("year").agg(
+        F.avg("annual_mm").alias("all_station_mean_mm")
+    )
+    stable_annual = (
+        station_year.join(F.broadcast(stable_ids), "station_id", "inner")
+        .groupBy("year").agg(
+            F.avg("annual_mm").alias("stable_cohort_mean_mm"),
+            F.countDistinct("station_id").alias("stable_station_count"),
+        )
+    )
+    comparison = all_annual.join(stable_annual, "year", "left").orderBy("year")
+    eligible_daily = daily.filter("eligible")
+    heavy = (
+        eligible_daily.groupBy("year").agg(
+            F.count("*").alias("eligible_station_days"),
+            F.sum((F.col("daily_mm") >= 50).cast("long")).alias("heavy_station_days"),
+        ).withColumn(
+            "heavy_station_days_per_1000",
+            1000.0 * F.col("heavy_station_days") / F.col("eligible_station_days"),
+        ).orderBy("year")
+    )
+    sensitivity = None
+    for threshold in (0.90, 0.95, 0.99):
+        part = (
+            daily.groupBy("year").agg(
+                F.sum((F.col("completeness") >= threshold).cast("long")).alias("eligible_station_days"),
+                F.sum(((F.col("completeness") >= threshold) & (F.col("daily_mm") >= 50)).cast("long")).alias("heavy_station_days"),
+            ).withColumn("completeness_threshold", F.lit(threshold))
+            .withColumn("heavy_per_1000", 1000.0 * F.col("heavy_station_days") / F.col("eligible_station_days"))
+        )
+        sensitivity = part if sensitivity is None else sensitivity.unionByName(part)
+
+    pdf_cov = annual_coverage.toPandas()
+    pdf_cmp = comparison.toPandas()
+    pdf_heavy = heavy.toPandas()
+    save_table(pdf_cov, tbl_path("coverage_by_year.csv"))
+    save_table(pdf_cmp, tbl_path("annual_stable_cohort.csv"))
+    save_table(pdf_heavy, tbl_path("heavy_rain_rate_normalised.csv"))
+    save_table(sensitivity.orderBy("completeness_threshold", "year").toPandas(),
+               tbl_path("coverage_sensitivity.csv"))
+    save_table(stable_ids.orderBy("station_id").toPandas(), tbl_path("stable_cohort_stations.csv"))
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.plot(pdf_cmp["year"], pdf_cmp["all_station_mean_mm"], "o-", label="All observed stations")
+    ax.plot(pdf_cmp["year"], pdf_cmp["stable_cohort_mean_mm"], "s--", label="Stable cohort")
+    ax.set_xlabel("Year"); ax.set_ylabel("Mean annual rainfall per station (mm)")
+    ax.set_title("Annual rainfall: all stations versus stable-coverage cohort")
+    ax.legend(); fig.tight_layout()
+    fig.savefig(fig_path("annual_rainfall_coverage_adjusted.png"), dpi=160); plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.bar(pdf_heavy["year"], pdf_heavy["heavy_station_days_per_1000"], color="#6a4c93")
+    ax.set_xlabel("Year"); ax.set_ylabel("Heavy station-days per 1,000 eligible station-days")
+    ax.set_title(f"Coverage-normalised heavy rainfall (daily completeness ≥ {completeness_threshold:.0%})")
+    fig.tight_layout(); fig.savefig(fig_path("heavy_rain_rate_normalised.png"), dpi=160); plt.close(fig)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", default=config.CLEAN_PARQUET)
+    ap.add_argument("--data", default=None,
+                    help="Clean Parquet. Default: latest tracked clean run, then legacy path.")
+    ap.add_argument("--daily-completeness", type=float, default=0.95)
+    ap.add_argument("--stable-year-coverage", type=float, default=0.90)
+    ap.add_argument("--hash-mode", choices=["full", "metadata"], default="full")
+    ap.add_argument("--publish-legacy", action="store_true")
     args = ap.parse_args()
 
     config.ensure_dirs()
+    args.data = args.data or latest_artifact("clean", "clean_parquet") or config.CLEAN_PARQUET
+    run = RunContext("task1", vars(args), hash_mode=args.hash_mode)
+    global ACTIVE_FIGURES_DIR, ACTIVE_TABLES_DIR
+    ACTIVE_FIGURES_DIR = run.artifact_path("figures")
+    ACTIVE_TABLES_DIR = run.artifact_path("tables")
+    os.makedirs(ACTIVE_FIGURES_DIR, exist_ok=True)
+    os.makedirs(ACTIVE_TABLES_DIR, exist_ok=True)
+    run.record_input("clean_parquet", args.data)
     spark = get_spark("task1_explore", driver_memory="11g")
     df = spark.read.parquet(args.data)
     df = df.cache()
@@ -309,9 +422,17 @@ def main() -> None:
     print("[4/6] diurnal by season..."); diurnal_by_season(df)
     print("[5/6] spatial pattern...");    spatial_pattern(df)
     print("[6/6] intensity dist...");     intensity_distribution(df)
+    print("[7/7] coverage-normalised checks...")
+    coverage_normalised_analysis(df, args.daily_completeness, args.stable_year_coverage)
 
-    print("Task 1 complete. Figures in output/figures, tables in output/tables.")
+    print(f"Task 1 complete. Immutable artifacts: {run.artifacts_dir}")
     spark.stop()
+    run.record_artifact("figures", ACTIVE_FIGURES_DIR)
+    run.record_artifact("tables", ACTIVE_TABLES_DIR)
+    if args.publish_legacy:
+        publish_copy(ACTIVE_FIGURES_DIR, config.FIGURES_DIR)
+        publish_copy(ACTIVE_TABLES_DIR, config.TABLES_DIR)
+    run.finalize()
 
 
 if __name__ == "__main__":

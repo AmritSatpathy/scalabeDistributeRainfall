@@ -31,12 +31,14 @@ from __future__ import annotations
 
 import argparse
 import glob
+import json
 import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
 from spark_utils import get_spark  # noqa: E402
+from run_artifacts import RunContext, publish_copy  # noqa: E402
 
 from pyspark.sql import DataFrame, Window  # noqa: E402
 from pyspark.sql import functions as F  # noqa: E402
@@ -92,7 +94,9 @@ def looks_like_id(col):
     return col.rlike(r"^S\d+$")
 
 
-def clean(df: DataFrame, sample_days: int | None) -> DataFrame:
+def clean_with_audit(df: DataFrame, sample_days: int | None,
+                     max_5min_mm: float = MAX_5MIN_MM):
+    """Apply mutually exclusive cleaning rules and return audit-ready frames."""
     # ---- parse core fields -------------------------------------------------
     df = df.withColumn("ts", F.to_timestamp("timestamp"))
     df = df.withColumn("rain_mm", F.col("reading_value").cast(T.DoubleType()))
@@ -100,24 +104,24 @@ def clean(df: DataFrame, sample_days: int | None) -> DataFrame:
     df = df.withColumn("lon", F.col("location_longitude").cast(T.DoubleType()))
     df = df.withColumn("upd_ts", F.to_timestamp("update_timestamp"))
 
-    # ---- validity filter ---------------------------------------------------
-    # Drop rows we cannot trust or use:
-    #   * null station_id / ts  -> can't attribute or order the reading
-    #   * null rain_mm          -> nothing to measure (not safe to impute)
-    #   * rain_mm < 0           -> physically impossible (data error)
-    #   * rain_mm > MAX_5MIN_MM -> beyond any credible 5-min intensity; a single
-    #                              bad value would otherwise skew sums/model
-    df = df.filter(
-        F.col("station_id").isNotNull()
-        & F.col("ts").isNotNull()
-        & F.col("rain_mm").isNotNull()
-        & (F.col("rain_mm") >= 0)
-        & (F.col("rain_mm") <= MAX_5MIN_MM)
-    )
-
     # optional smoke-test subset: first N days of each year
     if sample_days is not None:
-        df = df.withColumn("doy", F.dayofyear("ts")).filter(F.col("doy") <= sample_days).drop("doy")
+        df = df.filter(F.dayofyear("ts") <= sample_days)
+
+    # Assign one priority-ordered reason so rule-level losses add to the raw total.
+    df = df.withColumn(
+        "drop_reason",
+        F.when(F.col("station_id").isNull() | (F.trim("station_id") == ""), "missing_station")
+        .when(F.col("ts").isNull(), "invalid_timestamp")
+        .when(F.col("rain_mm").isNull(), "invalid_rainfall")
+        .when(F.col("rain_mm") < 0, "negative_rainfall")
+        .when(F.col("rain_mm") > F.lit(float(max_5min_mm)), "above_screening_bound"),
+    )
+    rule_audit = (
+        df.groupBy(F.col("src_year").alias("year"), "drop_reason")
+        .count().withColumnRenamed("count", "rows")
+    )
+    valid = df.filter(F.col("drop_reason").isNull()).drop("drop_reason")
 
     # ---- de-duplicate on (station_id, ts) ---------------------------------
     # The feed can re-issue a reading as corrections arrive. We keep exactly one
@@ -125,11 +129,15 @@ def clean(df: DataFrame, sample_days: int | None) -> DataFrame:
     # (the most recent correction). row_number()==1 over that ordering picks it.
     # Exactly one reading per slot is essential for correct rolling sums later.
     w = Window.partitionBy("station_id", "ts").orderBy(F.col("upd_ts").desc_nulls_last())
-    df = (
-        df.withColumn("_rn", F.row_number().over(w))
-        .filter(F.col("_rn") == 1)
-        .drop("_rn")
+    ranked = valid.withColumn("_rn", F.row_number().over(w))
+    duplicate_audit = (
+        ranked.filter(F.col("_rn") > 1)
+        .groupBy(F.col("src_year").alias("year")).count()
+        .withColumn("drop_reason", F.lit("duplicate_station_timestamp"))
+        .withColumnRenamed("count", "rows")
+        .select("year", "drop_reason", "rows")
     )
+    df = ranked.filter(F.col("_rn") == 1).drop("_rn")
 
     # ---- calendar features -------------------------------------------------
     df = (
@@ -142,7 +150,66 @@ def clean(df: DataFrame, sample_days: int | None) -> DataFrame:
         .withColumn("dayofyear", F.dayofyear("ts"))
         .withColumn("date", F.to_date("ts"))
     )
-    return df
+    return df, rule_audit.unionByName(duplicate_audit)
+
+
+def clean(df: DataFrame, sample_days: int | None) -> DataFrame:
+    """Backward-compatible cleaning entry point without returning audit data."""
+    return clean_with_audit(df, sample_days)[0]
+
+
+def audit_stage_counts(cleaned: DataFrame, rule_audit: DataFrame):
+    raw_counts = (
+        rule_audit.filter(
+            F.col("drop_reason").isNull()
+            | (F.col("drop_reason") != "duplicate_station_timestamp")
+        ).groupBy("year").agg(F.sum("rows").alias("raw_rows"))
+    )
+    clean_counts = cleaned.groupBy("year").count().withColumnRenamed("count", "cleaned_rows")
+    removed = (
+        rule_audit.filter(F.col("drop_reason").isNotNull())
+        .groupBy("year").pivot("drop_reason").sum("rows").na.fill(0)
+    )
+    return raw_counts.join(clean_counts, "year", "outer").join(removed, "year", "outer").na.fill(0).orderBy("year")
+
+
+def cadence_audit(cleaned: DataFrame):
+    w = Window.partitionBy("station_id").orderBy("ts")
+    d = (
+        cleaned.withColumn("prev_ts", F.lag("ts").over(w))
+        .withColumn("gap_seconds", F.col("ts").cast("long") - F.col("prev_ts").cast("long"))
+        .withColumn("off_grid", (F.pmod(F.col("ts").cast("long"), F.lit(300)) != 0).cast("int"))
+        .withColumn("gap_over_5m", (F.col("gap_seconds") > 300).cast("int"))
+        .withColumn(
+            "estimated_missing_slots",
+            F.when(F.col("gap_seconds") > 300, F.floor(F.col("gap_seconds") / 300) - 1).otherwise(0),
+        )
+    )
+    return (
+        d.groupBy("year").agg(
+            F.count("*").alias("cleaned_rows"),
+            F.sum("off_grid").alias("off_grid_timestamps"),
+            F.sum("gap_over_5m").alias("gaps_over_5m"),
+            F.sum("estimated_missing_slots").alias("estimated_missing_slots"),
+            F.max("gap_seconds").alias("max_gap_seconds"),
+        ).orderBy("year")
+    )
+
+
+def extreme_day_audit(cleaned: DataFrame):
+    daily = cleaned.groupBy("year", "date", "station_id").agg(
+        F.sum("rain_mm").alias("daily_mm"),
+        F.count("*").alias("observed_intervals"),
+        F.max("rain_mm").alias("max_5min_mm"),
+    )
+    top = daily.orderBy(F.col("daily_mm").desc()).limit(25)
+    trace_keys = top.select("station_id", "date")
+    trace = (
+        cleaned.join(F.broadcast(trace_keys), ["station_id", "date"], "inner")
+        .select("station_id", "date", "ts", "rain_mm", "upd_ts")
+        .orderBy(F.col("date"), F.col("station_id"), F.col("ts"))
+    )
+    return top, trace
 
 
 def resolve_stations(df: DataFrame) -> DataFrame:
@@ -178,13 +245,19 @@ def main() -> None:
     ap.add_argument("--sample-days", type=int, default=None,
                     help="Keep only the first N days of each year (smoke test)")
     ap.add_argument("--out", default=config.CLEAN_PARQUET)
+    ap.add_argument("--max-5min-mm", type=float, default=MAX_5MIN_MM)
+    ap.add_argument("--hash-mode", choices=["full", "metadata"], default="full")
+    ap.add_argument("--publish-legacy", action="store_true",
+                    help="Also copy the immutable run output to the legacy --out path.")
     args = ap.parse_args()
 
     config.ensure_dirs()
+    run = RunContext("clean", vars(args), hash_mode=args.hash_mode)
     spark = get_spark("clean_rainfall", driver_memory="11g")
 
     raw = read_raw(spark, args.years)
-    df = clean(raw, args.sample_days)
+    run.record_input("raw_csvs", config.RAW_DIR)
+    df, rule_audit = clean_with_audit(raw, args.sample_days, args.max_5min_mm)
 
     stations = resolve_stations(df).cache()
     n_stations = stations.count()
@@ -201,11 +274,11 @@ def main() -> None:
     keep = [
         "station_id", "station_name", "lat", "lon",
         "ts", "date", "year", "month", "day", "hour", "minute",
-        "dayofweek", "dayofyear", "rain_mm",
+        "dayofweek", "dayofyear", "rain_mm", "upd_ts",
     ]
     df = df.select(*keep)
 
-    out = args.out
+    out = run.artifact_path("rainfall_clean")
     print(f"  writing Parquet -> {out} (partitioned by year)")
     (
         df.repartition("year")
@@ -214,17 +287,35 @@ def main() -> None:
         .parquet(out)
     )
 
-    # Report row counts per year for the report/README.
+    # Persist all audit evidence beside the cleaned dataset.
     check = spark.read.parquet(out)
-    print("  rows per year after cleaning:")
-    check.groupBy("year").count().orderBy("year").show()
-    print("  TOTAL rows:", check.count())
+    audit = audit_stage_counts(check, rule_audit)
+    cadence = cadence_audit(check)
+    extreme, trace = extreme_day_audit(check)
+    audit_path = run.artifact_path("cleaning_rule_audit.csv")
+    cadence_path = run.artifact_path("cadence_audit.csv")
+    extreme_path = run.artifact_path("extreme_station_days.csv")
+    trace_path = run.artifact_path("extreme_day_trace.csv")
+    audit.toPandas().to_csv(audit_path, index=False)
+    cadence.toPandas().to_csv(cadence_path, index=False)
+    extreme.toPandas().to_csv(extreme_path, index=False)
+    trace.toPandas().to_csv(trace_path, index=False)
 
     # Persist the station master table for reference.
-    stations.orderBy("station_id").toPandas().to_csv(
-        os.path.join(config.TABLES_DIR, "stations.csv"), index=False
-    )
+    stations_path = run.artifact_path("stations.csv")
+    stations.orderBy("station_id").toPandas().to_csv(stations_path, index=False)
+    for name, path in {
+        "clean_parquet": out, "cleaning_rule_audit": audit_path,
+        "cadence_audit": cadence_path, "extreme_station_days": extreme_path,
+        "extreme_day_trace": trace_path, "stations": stations_path,
+    }.items():
+        run.record_artifact(name, path)
+    if args.publish_legacy:
+        publish_copy(out, args.out)
+        publish_copy(stations_path, os.path.join(config.TABLES_DIR, "stations.csv"))
     spark.stop()
+    run.finalize()
+    print(f"tracked clean run: {run.run_id} -> {run.path}")
 
 
 if __name__ == "__main__":

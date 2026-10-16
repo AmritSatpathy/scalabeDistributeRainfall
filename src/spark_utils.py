@@ -26,6 +26,7 @@ which take precedence over the built-in defaults.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from pyspark.sql import SparkSession
 
@@ -82,6 +83,14 @@ def get_spark(
         .config("spark.driver.maxResultSize", "2g")
         .config("spark.local.dir", str(resolved_local_dir))
     )
+
+    event_log_dir = os.environ.get("SPARK_EVENTLOG_DIR")
+    if event_log_dir:
+        Path(event_log_dir).mkdir(parents=True, exist_ok=True)
+        builder = (
+            builder.config("spark.eventLog.enabled", "true")
+            .config("spark.eventLog.dir", Path(event_log_dir).resolve().as_uri())
+        )
 
     # Executor settings only make sense on a real cluster; apply them only when
     # provided (arg or env), so local[*] runs are unaffected.
