@@ -11,6 +11,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
+import sys
 import threading
 from urllib.parse import quote
 
@@ -20,6 +21,7 @@ import numpy as np
 import pandas as pd
 from branca.element import Element
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config
 from run_artifacts import RunContext, latest_artifact, publish_tree
 
@@ -254,7 +256,7 @@ def render_pngs(html_dir, figures_dir, width, height, wait_seconds):
 def clean_published_geo_maps(output_root, keep_png, keep_html):
     """Remove superseded published map files after replacements exist."""
     targets = [
-        (Path(output_root) / "figures", "geo*.png", set(keep_png)),
+        (Path(output_root) / "figures" / "geospatial", "geo*.png", set(keep_png)),
         (Path(output_root) / "interactive", "geo*.html", set(keep_html)),
     ]
     for directory, pattern, keep in targets:
@@ -465,7 +467,12 @@ def main():
             run.record_artifact(label, str(folder), mode="full")
         if args.publish_legacy:
             for folder in (tables, gj_dir, html, figures):
-                publish_tree(str(folder), str(Path(config.OUTPUT_DIR) / folder.name))
+                destination = (
+                    Path(config.GEOSPATIAL_FIGURES_DIR)
+                    if folder.name == "figures"
+                    else Path(config.OUTPUT_DIR) / folder.name
+                )
+                publish_tree(str(folder), str(destination))
             if args.clean_published_geo:
                 clean_published_geo_maps(
                     config.OUTPUT_DIR,

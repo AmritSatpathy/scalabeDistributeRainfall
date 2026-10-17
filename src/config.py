@@ -19,6 +19,7 @@ PROCESSED_DIR = os.path.join(DATA_DIR, "processed")  # cleaned Parquet
 
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "output")
 FIGURES_DIR = os.path.join(OUTPUT_DIR, "figures")
+GEOSPATIAL_FIGURES_DIR = os.path.join(FIGURES_DIR, "geospatial")
 TABLES_DIR = os.path.join(OUTPUT_DIR, "tables")
 RUNS_DIR = os.path.join(OUTPUT_DIR, "runs")
 
@@ -66,6 +67,7 @@ def ensure_dirs() -> None:
         RAW_DIR,
         PROCESSED_DIR,
         FIGURES_DIR,
+        GEOSPATIAL_FIGURES_DIR,
         TABLES_DIR,
         RUNS_DIR,
         MODELS_DIR,

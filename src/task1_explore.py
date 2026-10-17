@@ -40,7 +40,9 @@ ACTIVE_TABLES_DIR = config.TABLES_DIR
 
 
 def fig_path(name: str) -> str:
-    return os.path.join(ACTIVE_FIGURES_DIR, name)
+    path = os.path.join(ACTIVE_FIGURES_DIR, name)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    return path
 
 
 def tbl_path(name: str) -> str:
@@ -234,7 +236,7 @@ def spatial_pattern(df):
     cbar = fig.colorbar(sc, ax=ax)
     cbar.set_label("Average annual rainfall (mm)")
     fig.tight_layout()
-    fig.savefig(fig_path("station_map.png"), dpi=130)
+    fig.savefig(fig_path("geospatial/station_map.png"), dpi=130)
     plt.close(fig)
 
     # Top / bottom 10 bar chart

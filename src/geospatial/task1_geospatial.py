@@ -24,14 +24,14 @@ from matplotlib.patches import Polygon  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config  # noqa: E402
 from run_artifacts import RunContext, latest_artifact, publish_tree  # noqa: E402
 from spark_utils import get_spark  # noqa: E402
 
 from pyspark.sql import functions as F  # noqa: E402
 
-FIGURES_DIR = config.FIGURES_DIR
+FIGURES_DIR = config.GEOSPATIAL_FIGURES_DIR
 TABLES_DIR = config.TABLES_DIR
 EXPECTED_INTERVALS_PER_DAY = 24 * 60 // config.INTERVAL_MINUTES
 SEASONS = [
@@ -524,7 +524,7 @@ def main() -> None:
     run.record_artifact("figures", FIGURES_DIR)
     run.record_artifact("tables", TABLES_DIR)
     if args.publish_legacy:
-        publish_tree(FIGURES_DIR, config.FIGURES_DIR)
+        publish_tree(FIGURES_DIR, config.GEOSPATIAL_FIGURES_DIR)
         publish_tree(TABLES_DIR, config.TABLES_DIR)
     run.finalize()
     print(f"tracked geospatial Task 1 run: {run.run_id} -> {run.path}")

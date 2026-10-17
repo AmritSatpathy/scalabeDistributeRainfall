@@ -1,0 +1,6 @@
+region,average_monthly_rainfall_mm,represented_months,mean_active_stations,minimum_active_stations,maximum_active_stations
+CENTRAL REGION,98.23636121145776,1,18,18,18
+EAST REGION,111.65525889436233,1,7,7,7
+NORTH REGION,176.3856295862069,1,10,10,10
+NORTH-EAST REGION,76.99980028735632,1,8,8,8
+WEST REGION,167.90694015492252,1,12,12,12

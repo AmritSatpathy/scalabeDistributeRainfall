@@ -4,10 +4,12 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 
 import h3
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config
 from run_artifacts import RunContext, publish_tree
 from task1_august_geospatial_maps import (
@@ -224,8 +226,13 @@ def main():
             run.record_artifact(name, str(directory), mode="full")
         if args.publish_legacy:
             for directory in (tables, geojson_dir, html_dir, figures_dir):
+                destination = (
+                    Path(config.GEOSPATIAL_FIGURES_DIR)
+                    if directory.name == "figures"
+                    else Path(config.OUTPUT_DIR) / directory.name
+                )
                 publish_tree(
-                    str(directory), str(Path(config.OUTPUT_DIR) / directory.name)
+                    str(directory), str(destination)
                 )
         run.finalize()
         print(f"Completed: {run.path}")

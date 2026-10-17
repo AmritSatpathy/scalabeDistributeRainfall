@@ -154,7 +154,7 @@ The pattern holds across monsoon seasons, with amplitude differences:
 Rainfall is spatially uneven across the island; mapping each station's average
 annual total and ranking the wettest/driest stations makes this concrete:
 
-![Average annual rainfall by station (map)](../output/figures/station_map.png)
+![Average annual rainfall by station (map)](../output/figures/geospatial/station_map.png)
 
 ![Wettest and driest stations](../output/figures/station_top_bottom.png)
 

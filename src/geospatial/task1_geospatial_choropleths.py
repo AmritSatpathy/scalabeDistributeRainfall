@@ -30,7 +30,7 @@ from matplotlib.patches import Patch, Polygon  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config  # noqa: E402
 from run_artifacts import RunContext, latest_artifact, publish_tree  # noqa: E402
 from spark_utils import get_spark  # noqa: E402
@@ -807,7 +807,7 @@ def main() -> None:
     run.record_artifact("tables", tables_dir)
     run.record_artifact("interactive_map", interactive_path)
     if args.publish_legacy:
-        publish_tree(figures_dir, config.FIGURES_DIR)
+        publish_tree(figures_dir, config.GEOSPATIAL_FIGURES_DIR)
         publish_tree(tables_dir, config.TABLES_DIR)
         publish_tree(os.path.dirname(interactive_path), os.path.join(config.OUTPUT_DIR, "interactive"))
     run.finalize()

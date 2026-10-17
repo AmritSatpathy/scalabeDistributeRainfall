@@ -80,7 +80,7 @@ This path materialises the temporal frame once on disk before constructing the s
 ## 4. Generate the geospatial Task 1 tables and PNG figures
 
 ```bash
-./.venv/bin/python src/task1_geospatial.py \
+./.venv/bin/python src/geospatial/task1_geospatial.py \
   --daily-completeness 0.90 \
   --h3-resolution 7 \
   --minimum-event-stations 20 \
@@ -100,7 +100,7 @@ It produces 300-dpi PNG files:
 | `geo_G10_lagged_storm_footprint.png` | Rainfall state at `t−60`, `t−30`, `t−15`, `t` and the clearly labelled `t+30` outcome |
 | `geo_G8_G9_antecedent_intensification.png` | 30-minute, 3-hour and 24-hour accumulation, intensity change, wet fraction and recent peak intensity |
 
-Tables containing the plotted values and the selection audit are stored beside the figures. `--publish-legacy` copies the completed figures into `output/figures` and tables into `output/tables`.
+Tables containing the plotted values and the selection audit are stored beside the figures. `--publish-legacy` copies the completed figures into `output/figures/geospatial` and tables into `output/tables`.
 
 ## 5. Inspect the tracked outputs
 
@@ -117,7 +117,7 @@ Prints the immutable run locations, manifests and manifest hashes. Use the figur
 After inspecting the automatically selected period, a declared target month and forecast origin can be rendered without changing the processed data:
 
 ```bash
-./.venv/bin/python src/task1_geospatial.py \
+./.venv/bin/python src/geospatial/task1_geospatial.py \
   --target-month 2024-11 \
   --event-time "2024-11-15T15:30:00" \
   --daily-completeness 0.90 \
