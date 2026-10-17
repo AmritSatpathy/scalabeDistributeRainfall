@@ -38,9 +38,9 @@ STATIC_COLS = [
 ]
 
 
-def build_sequences(spark, features_or_clean_path, thresholds, test_year,
+def build_sequences(spark, features_or_clean_path, thresholds, validation_year, test_year,
                     seq_len=SEQ_LEN, max_rows_per_split=400_000, seed=42):
-    """Return dict with train/test numpy arrays.
+    """Return exact-cadence train/validation/test numpy arrays.
 
     We read the CLEANED parquet (needs raw rain_mm sequence + calendar), rebuild
     the lag sequence and the 30-min label, then explode thresholds and sample.
@@ -53,33 +53,35 @@ def build_sequences(spark, features_or_clean_path, thresholds, test_year,
     ts_secs = F.col("ts").cast("long")
     w = Window.partitionBy("station_id").orderBy(ts_secs)
 
-    # lag sequence: rain at t-0, t-5, ..., t-(L-1)*5 minutes
+    # Exact lag sequence: a previous row is accepted only at the requested
+    # timestamp offset; gaps never collapse the sequence.
     lag_cols = []
+    exact_flags = []
     for k in range(seq_len):
         c = f"lag{k}"
-        df = df.withColumn(c, F.lag("rain_mm", k).over(w))
+        lag_ts = F.lag(ts_secs, k).over(w)
+        exact = lag_ts == ts_secs - k * config.INTERVAL_MINUTES * 60
+        df = df.withColumn(c, F.when(exact, F.lag("rain_mm", k).over(w)))
         lag_cols.append(c)
+        exact_flags.append(F.col(c).isNotNull())
 
-    # forward 30-min accumulation label source
-    wf = w.rangeBetween(1, config.HORIZON_MINUTES * 60)
-    df = df.withColumn("future_30min_mm", F.sum("rain_mm").over(wf))
-    df = df.withColumn("future_n", F.count("rain_mm").over(wf))
+    df = tf.add_future_labels(df)
+    full_sequence = exact_flags[0]
+    for flag in exact_flags[1:]: full_sequence = full_sequence & flag
+    df = df.filter(full_sequence & F.col("future_complete"))
+    df = df.withColumn("sample_id", F.sha2(F.concat_ws("|", "station_id", F.col("ts").cast("string")), 256))
 
-    # need a full lag sequence + full future window
-    df = df.filter(F.col(lag_cols[-1]).isNotNull() & (F.col("future_n") >= config.HORIZON_STEPS))
-
-    keep = ["station_id", "year", "future_30min_mm"] + STATIC_COLS + lag_cols
+    keep = ["sample_id", "station_id", "ts", "label_end_ts", "year", "future_30min_mm"] + STATIC_COLS + lag_cols
     df = df.select(*keep).na.drop()
 
     def collect_split(sdf, split_name):
-        # explode thresholds
+        # Select base contexts first so every threshold copy stays together.
+        max_contexts = max(1, max_rows_per_split // max(1, len(thresholds)))
+        sdf = sdf.orderBy(F.xxhash64("sample_id"), "sample_id").limit(max_contexts)
         thr_col = F.explode(F.array([F.lit(float(t)) for t in thresholds]))
         e = sdf.withColumn("threshold", thr_col)
         e = e.withColumn("label", (F.col("future_30min_mm") > F.col("threshold")).cast("double"))
-        n = e.count()
-        if n > max_rows_per_split:
-            e = e.sample(False, max_rows_per_split / float(n), seed=seed)
-        pdf = e.select(*(STATIC_COLS + lag_cols + ["threshold", "label"])).toPandas()
+        pdf = e.select(*(["sample_id"] + STATIC_COLS + lag_cols + ["threshold", "label"])).toPandas()
         print(f"  {split_name}: {len(pdf):,} sequence rows")
 
         # lag_cols were built as [lag0, lag1, ..., lag{L-1}] where lag0 = the
@@ -92,15 +94,24 @@ def build_sequences(spark, features_or_clean_path, thresholds, test_year,
         X_seq = seq.reshape(len(pdf), seq_len, 1)
         X_stat = pdf[STATIC_COLS + ["threshold"]].to_numpy(dtype=np.float32)
         y = pdf["label"].to_numpy(dtype=np.float32)
-        return X_seq, X_stat, y
+        return X_seq, X_stat, y, pdf["threshold"].to_numpy(dtype=np.float32), pdf["sample_id"].to_numpy()
 
-    train = df.filter(F.col("year") < test_year)
-    test = df.filter(F.col("year") == test_year)
-    Xtr_seq, Xtr_stat, ytr = collect_split(train, "train")
-    Xte_seq, Xte_stat, yte = collect_split(test, "test")
+    val_start = F.to_timestamp(F.lit(f"{validation_year}-01-01 00:00:00"))
+    test_start = F.to_timestamp(F.lit(f"{test_year}-01-01 00:00:00"))
+    test_end = F.to_timestamp(F.lit(f"{test_year + 1}-01-01 00:00:00"))
+    train = df.filter(F.col("label_end_ts") < val_start)
+    validation = df.filter((F.col("ts") >= val_start) & (F.col("label_end_ts") < test_start))
+    test = df.filter((F.col("ts") >= test_start) & (F.col("label_end_ts") < test_end))
+    Xtr_seq, Xtr_stat, ytr, ttr, itr = collect_split(train, "train")
+    Xva_seq, Xva_stat, yva, tva, iva = collect_split(validation, "validation")
+    Xte_seq, Xte_stat, yte, tte, ite = collect_split(test, "test")
 
     return {
         "X_train_seq": Xtr_seq, "X_train_stat": Xtr_stat, "y_train": ytr,
+        "threshold_train": ttr, "sample_id_train": itr,
+        "X_validation_seq": Xva_seq, "X_validation_stat": Xva_stat, "y_validation": yva,
+        "threshold_validation": tva, "sample_id_validation": iva,
         "X_test_seq": Xte_seq, "X_test_stat": Xte_stat, "y_test": yte,
+        "threshold_test": tte, "sample_id_test": ite,
         "seq_len": seq_len, "n_static": Xtr_stat.shape[1],
     }

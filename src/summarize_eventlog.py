@@ -16,16 +16,12 @@ def lines(path: Path):
         yield from fh
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("event_log")
-    ap.add_argument("--out", required=True)
-    args = ap.parse_args()
+def summarize(event_log: str):
     totals = {k: 0 for k in (
         "tasks", "executor_run_ms", "executor_cpu_ns", "jvm_gc_ms",
         "memory_spill_bytes", "disk_spill_bytes", "shuffle_read_bytes", "shuffle_write_bytes")}
     stage_tasks = {}
-    paths = [Path(args.event_log)] if Path(args.event_log).is_file() else sorted(Path(args.event_log).rglob("*"))
+    paths = [Path(event_log)] if Path(event_log).is_file() else sorted(Path(event_log).rglob("*"))
     for path in paths:
         if not path.is_file() or path.name.startswith("."): continue
         for line in lines(path):
@@ -46,8 +42,17 @@ def main() -> None:
                 "shuffle_write_bytes": metrics.get("Shuffle Write Metrics", {}).get("Shuffle Bytes Written", 0),
             }
             for key, value in values.items(): totals[key] += value or 0; row[key] += value or 0
+    return totals, [{"stage_id": stage, **metrics} for stage, metrics in sorted(stage_tasks.items())]
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("event_log")
+    ap.add_argument("--out", required=True)
+    args = ap.parse_args()
+    totals, stages = summarize(args.event_log)
     out = Path(args.out); out.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame([{"stage_id": stage, **metrics} for stage, metrics in sorted(stage_tasks.items())]).to_csv(out, index=False)
+    pd.DataFrame(stages).to_csv(out, index=False)
     out.with_suffix(".summary.json").write_text(json.dumps(totals, indent=2) + "\n")
     print(json.dumps(totals, indent=2))
 

@@ -18,6 +18,9 @@ cluster/logs/
 cluster/pids/
 output/runs/
 
+# Local service credentials. Generated Folium HTML embeds the CARTO key.
+basemaps.local.json
+
 # --- OS noise ---
 .DS_Store
 Thumbs.db

@@ -50,9 +50,9 @@ The score below is a reviewer-defined diagnostic, not an official NUS rubric or 
 | Validity wording | Reframed review notes as threats to validity and rerun conditions | Section fits an academic report structure |
 | Architecture and presentation | Retained the completed architecture atlas, readable equations/logos, NUS cover treatment and Times New Roman body | No further architecture redesign is required for submission readiness |
 
-## 4. Remaining gaps that require implementation or new experiments
+## 4. Implemented experiment designs awaiting execution
 
-These items cannot be closed by editing prose. The report already states their limits instead of inventing evidence.
+The code paths for these items are now implemented in the corrected pipeline and documented in [VALIDATED_EXPERIMENT_RUNBOOK.md](../VALIDATED_EXPERIMENT_RUNBOOK.md). The report score remains unchanged until the experiments are executed and their tracked artifacts are reviewed; implementation alone is not scientific evidence.
 
 | Priority | Remaining gap | Why it matters | Evidence needed to close it |
 |---|---|---|---|

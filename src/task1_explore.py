@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
 from spark_utils import get_spark, save_table  # noqa: E402
-from run_artifacts import RunContext, latest_artifact, publish_copy  # noqa: E402
+from run_artifacts import RunContext, latest_artifact, publish_tree  # noqa: E402
 
 from pyspark.sql import functions as F  # noqa: E402
 
@@ -430,8 +430,8 @@ def main() -> None:
     run.record_artifact("figures", ACTIVE_FIGURES_DIR)
     run.record_artifact("tables", ACTIVE_TABLES_DIR)
     if args.publish_legacy:
-        publish_copy(ACTIVE_FIGURES_DIR, config.FIGURES_DIR)
-        publish_copy(ACTIVE_TABLES_DIR, config.TABLES_DIR)
+        publish_tree(ACTIVE_FIGURES_DIR, config.FIGURES_DIR)
+        publish_tree(ACTIVE_TABLES_DIR, config.TABLES_DIR)
     run.finalize()
 
 

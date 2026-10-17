@@ -1,5 +1,12 @@
 # RUNBOOK — how to run every model on every compute architecture
 
+> **Superseded for final evidence.** Use
+> [`VALIDATED_EXPERIMENT_RUNBOOK.md`](VALIDATED_EXPERIMENT_RUNBOOK.md) for the
+> corrected temporal contract, immutable hashed artifacts, calibration,
+> positive-class metrics and controlled repeated systems experiments. The
+> commands below describe the earlier exploratory workflow and can produce
+> results that are not directly comparable across deployments.
+
 Copy-paste commands to run the rainfall prediction (Task 2) across all models
 and all compute tiers. Run everything from the project root in a WSL terminal
 with the venv Python (`./.venv/bin/python`).

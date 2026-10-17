@@ -272,22 +272,24 @@ def main() -> None:
     test_pred = add_score(fitted.transform(test)).persist(StorageLevel.MEMORY_AND_DISK)
     val_pred.count(); test_pred.count(); predict_secs = time.perf_counter() - t0
 
-    selected_cutoff, overall_cutoff_rows = select_cutoff(val_pred, candidates=args.cutoff_candidates)
+    raw_cutoff, _ = select_cutoff(val_pred, "raw_probability", args.cutoff_candidates)
+    assembler, calibrator = fit_isotonic(val_pred)
+    val_cal = apply_calibration(val_pred, assembler, calibrator).persist(StorageLevel.MEMORY_AND_DISK)
+    test_cal = apply_calibration(test_pred, assembler, calibrator).persist(StorageLevel.MEMORY_AND_DISK)
+    val_cal.count(); test_cal.count()
+    selected_cutoff, overall_cutoff_rows = select_cutoff(
+        val_cal, "calibrated_probability", args.cutoff_candidates)
     cutoff_rows = [{"threshold": "overall", **row} for row in overall_cutoff_rows]
     threshold_cutoffs = {}
     for threshold in eval_thresholds:
         cutoff, rows = select_cutoff(
-            val_pred.filter(F.col("threshold") == float(threshold)),
+            val_cal.filter(F.col("threshold") == float(threshold)),
+            score_col="calibrated_probability",
             candidates=args.cutoff_candidates,
         )
         threshold_cutoffs[float(threshold)] = cutoff
         cutoff_rows.extend({"threshold": threshold, **row} for row in rows)
-    assembler, calibrator = fit_isotonic(val_pred)
-    val_cal = apply_calibration(val_pred, assembler, calibrator)
-    test_cal = apply_calibration(test_pred, assembler, calibrator).persist(StorageLevel.MEMORY_AND_DISK)
-    test_cal.count()
-
-    overall_raw = evaluate_scores(test_cal, "raw_probability", selected_cutoff)
+    overall_raw = evaluate_scores(test_cal, "raw_probability", raw_cutoff)
     overall_cal = evaluate_scores(test_cal, "calibrated_probability", selected_cutoff)
     per_threshold = []
     for threshold in eval_thresholds:

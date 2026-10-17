@@ -21,6 +21,9 @@ training/prediction time. The final report is in
 
 Companion docs: [`RUNBOOK.md`](RUNBOOK.md) is the copy-paste guide to running
 every model on every compute tier (local, Standalone, Docker);
+[`VALIDATED_EXPERIMENT_RUNBOOK.md`](VALIDATED_EXPERIMENT_RUNBOOK.md) is the
+sequential protocol for the corrected temporal contract, coverage audits,
+calibrated evaluation and controlled repeated systems study;
 [`RATIONALE.md`](RATIONALE.md) explains *why* each decision was made;
 [`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md) is the master plan for the
 compute-environment × model study; [`PROGRESS.md`](PROGRESS.md) tracks status.
@@ -293,5 +296,13 @@ reporting AUC-ROC, AUC-PR, accuracy, F1, and per-threshold AUC.
 - Spark session time zone is pinned to `Asia/Singapore` so all timestamp math
   matches the SGT source.
 - Random seeds are fixed for sampling and the classifiers.
+- Corrected runs are immutable under `output/runs/`. Each run manifest records
+  its UTC timestamp, parameters, command, git state, SHA-256 of source code,
+  input fingerprints, output hashes, host metadata and upstream artifacts.
+- The corrected feature contract retains `sample_id`, prediction timestamp,
+  label-end timestamp, feature version and rolling-window coverage indicators.
+- Use `VALIDATED_EXPERIMENT_RUNBOOK.md` for new evidence. The older commands in
+  this README remain useful for orientation but do not provide the complete
+  controlled protocol.
 - The download step depends on data.gov.sg serving the 2017–2024 datasets in
   collection `2279`; dataset ids are recorded in `src/config.py`.

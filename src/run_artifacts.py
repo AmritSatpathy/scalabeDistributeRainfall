@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 import hashlib
 import json
 import os
@@ -54,7 +55,10 @@ def fingerprint(path: str | os.PathLike[str], mode: str = "full") -> dict[str, A
     files = []
     tree_hash = hashlib.sha256()
     total = 0
-    for child in sorted(p for p in root.rglob("*") if p.is_file()):
+    for child in sorted(
+        p for p in root.rglob("*")
+        if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc"
+    ):
         item = _hash_file(child, full)
         rel = child.relative_to(root).as_posix()
         files.append({"relative_path": rel, **{k: v for k, v in item.items() if k != "path"}})
@@ -114,10 +118,17 @@ class RunContext:
             "python": sys.version,
             "host": {"hostname": socket.gethostname(), "platform": platform.platform()},
             "git": _git_state(),
+            "code": {
+                "src": fingerprint(Path(config.PROJECT_ROOT) / "src", "full"),
+                "requirements": fingerprint(Path(config.PROJECT_ROOT) / "requirements.txt", "full"),
+                "docker_compose": fingerprint(Path(config.PROJECT_ROOT) / "docker" / "docker-compose.yml", "full"),
+            },
             "inputs": {},
             "artifacts": {},
         }
+        self._finalized = False
         self._write_manifest()
+        atexit.register(self._finalize_if_aborted)
 
     def artifact_path(self, relative: str) -> str:
         path = self.artifacts_dir / relative
@@ -139,19 +150,33 @@ class RunContext:
         return str(path)
 
     def finalize(self, status: str = "complete", error: str | None = None) -> None:
+        if self._finalized:
+            return
         self.manifest["status"] = status
         self.manifest["completed_at_utc"] = utc_now()
         if error:
             self.manifest["error"] = error
         self._write_manifest()
-        pointer = self.root / f"latest_{self.stage}.json"
+        manifest_path = self.path / "manifest.json"
+        manifest_sha = _hash_file(manifest_path, True)["sha256"]
+        (self.path / "manifest.sha256").write_text(f"{manifest_sha}  manifest.json\n")
+        pointer_name = f"latest_{self.stage}.json" if status == "complete" else f"last_{self.stage}_attempt.json"
+        pointer = self.root / pointer_name
         tmp = pointer.with_suffix(".tmp")
         tmp.write_text(json.dumps({
             "run_id": self.run_id, "stage": self.stage,
             "run_dir": str(self.path), "manifest": str(self.path / "manifest.json"),
-            "status": status,
+            "manifest_sha256": manifest_sha, "status": status,
         }, indent=2) + "\n")
         os.replace(tmp, pointer)
+        self._finalized = True
+
+    def _finalize_if_aborted(self) -> None:
+        if not self._finalized:
+            try:
+                self.finalize("aborted", "Process exited before normal run finalization")
+            except Exception:
+                pass
 
     def _write_manifest(self) -> None:
         path = self.path / "manifest.json"
@@ -182,6 +207,20 @@ def publish_copy(source: str, destination: str) -> None:
         shutil.copytree(src, dst)
     else:
         shutil.copy2(src, dst)
+
+
+def publish_tree(source: str, destination: str) -> None:
+    """Merge a directory into a legacy output location without deleting peers."""
+    src, dst = Path(source), Path(destination)
+    dst.mkdir(parents=True, exist_ok=True)
+    for child in src.rglob("*"):
+        relative = child.relative_to(src)
+        target = dst / relative
+        if child.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(child, target)
 
 
 def main() -> None:

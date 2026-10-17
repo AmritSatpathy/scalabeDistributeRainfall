@@ -33,7 +33,11 @@ import argparse
 import glob
 import json
 import os
+import re
 import sys
+import threading
+import time
+from contextlib import contextmanager
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
@@ -65,15 +69,162 @@ RAW_SCHEMA = T.StructType(
 # most intense bursts are well under this; anything above is treated as an
 # erroneous record.
 MAX_5MIN_MM = 60.0
+DEFAULT_GRID_TOLERANCE_SECONDS = 60
+
+
+class SparkProgressMonitor:
+    """Display live task progress while a blocking Spark action runs.
+
+    Spark actions block the Python driver, so the status tracker is polled from
+    a small daemon thread. The monitor is observational only and does not alter
+    Spark execution. In an interactive terminal it refreshes one line; in a
+    redirected log it emits periodic timestamped lines.
+    """
+
+    SPINNER = ("|", "/", "-", "\\")
+
+    def __init__(self, spark, label: str, interval_seconds: float = 2.0, width: int = 28):
+        self.spark = spark
+        self.label = label
+        self.interval_seconds = interval_seconds
+        self.width = width
+        self.started = 0.0
+        self.stop_event = threading.Event()
+        self.thread: threading.Thread | None = None
+        self.is_tty = sys.stdout.isatty()
+        self.last_log_bucket = -1
+
+    def __enter__(self):
+        self.started = time.monotonic()
+        print(f"\n  {self.label}")
+        self.thread = threading.Thread(target=self._poll, daemon=True)
+        self.thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop_event.set()
+        if self.thread is not None:
+            self.thread.join(timeout=self.interval_seconds + 0.5)
+        elapsed = time.monotonic() - self.started
+        if self.is_tty:
+            sys.stdout.write("\r" + " " * 140 + "\r")
+            sys.stdout.flush()
+        outcome = "FAILED" if exc_type is not None else "complete"
+        print(f"  [{outcome}] {self.label} ({elapsed:,.1f} s)")
+        return False
+
+    def _poll(self) -> None:
+        tick = 0
+        while not self.stop_event.is_set():
+            elapsed = time.monotonic() - self.started
+            message = self._status_message(elapsed, tick)
+            if self.is_tty:
+                sys.stdout.write("\r" + message[:138].ljust(138))
+                sys.stdout.flush()
+            else:
+                # Log once every ~10 seconds so redirected output remains useful
+                # without producing thousands of almost-identical lines.
+                bucket = int(elapsed // 10)
+                if bucket != self.last_log_bucket:
+                    print(message)
+                    self.last_log_bucket = bucket
+            tick += 1
+            self.stop_event.wait(self.interval_seconds)
+
+    def _status_message(self, elapsed: float, tick: int) -> str:
+        try:
+            tracker = self.spark.sparkContext.statusTracker()
+            stage_infos = [
+                tracker.getStageInfo(stage_id)
+                for stage_id in tracker.getActiveStageIds()
+            ]
+            stage_infos = [info for info in stage_infos if info is not None]
+            total = sum(int(info.numTasks) for info in stage_infos)
+            completed = sum(int(info.numCompletedTasks) for info in stage_infos)
+            active = sum(int(info.numActiveTasks) for info in stage_infos)
+            failed = sum(int(info.numFailedTasks) for info in stage_infos)
+            if total > 0:
+                fraction = min(1.0, completed / total)
+                filled = int(round(self.width * fraction))
+                bar = "#" * filled + "-" * (self.width - filled)
+                stage_ids = ",".join(str(info.stageId) for info in stage_infos)
+                return (
+                    f"  [{bar}] {100.0 * fraction:5.1f}% | stages {stage_ids} | "
+                    f"tasks {completed}/{total}, active {active}, failed {failed} | "
+                    f"elapsed {elapsed:,.0f}s"
+                )
+        except Exception as exc:
+            return f"  [{self.SPINNER[tick % len(self.SPINNER)]}] Spark status unavailable: {exc} | elapsed {elapsed:,.0f}s"
+        return (
+            f"  [{self.SPINNER[tick % len(self.SPINNER)]}] waiting for/planning Spark stages | "
+            f"elapsed {elapsed:,.0f}s"
+        )
+
+
+@contextmanager
+def driver_progress(label: str, interval_seconds: float = 5.0):
+    """Emit elapsed-time heartbeats for non-Spark work such as hashing."""
+    started = time.monotonic()
+    stop_event = threading.Event()
+    is_tty = sys.stdout.isatty()
+
+    def poll():
+        tick = 0
+        while not stop_event.is_set():
+            elapsed = time.monotonic() - started
+            message = f"  [{SparkProgressMonitor.SPINNER[tick % 4]}] {label} | elapsed {elapsed:,.0f}s"
+            if is_tty:
+                sys.stdout.write("\r" + message[:138].ljust(138))
+                sys.stdout.flush()
+            elif tick % max(1, int(10 / interval_seconds)) == 0:
+                print(message)
+            tick += 1
+            stop_event.wait(interval_seconds)
+
+    print(f"\n  {label}")
+    thread = threading.Thread(target=poll, daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        stop_event.set()
+        thread.join(timeout=interval_seconds + 0.5)
+        elapsed = time.monotonic() - started
+        if is_tty:
+            sys.stdout.write("\r" + " " * 140 + "\r")
+            sys.stdout.flush()
+        print(f"  [complete] {label} ({elapsed:,.1f} s)")
+
+
+def discover_raw_files(years) -> dict[int, str]:
+    """Find exactly one uploaded CSV for every requested year.
+
+    The data.gov.sg downloads in this project use both ``rainfall_2017.csv``
+    and ``HistoricalRainfallacrossSingapore2017.csv`` naming conventions.
+    Discovery by embedded four-digit year keeps ingestion independent of the
+    download filename while rejecting ambiguous duplicates.
+    """
+    requested = set(int(y) for y in years)
+    matches: dict[int, list[str]] = {year: [] for year in requested}
+    for path in sorted(glob.glob(os.path.join(config.RAW_DIR, "*.csv"))):
+        years_in_name = {int(value) for value in re.findall(r"(?<!\d)(20\d{2})(?!\d)", os.path.basename(path))}
+        for year in years_in_name & requested:
+            matches[year].append(path)
+    missing = sorted(year for year, paths in matches.items() if not paths)
+    ambiguous = {year: paths for year, paths in matches.items() if len(paths) > 1}
+    if missing:
+        raise FileNotFoundError(f"Missing raw CSVs for years: {missing} under {config.RAW_DIR}")
+    if ambiguous:
+        detail = "; ".join(f"{year}: {paths}" for year, paths in sorted(ambiguous.items()))
+        raise RuntimeError(f"More than one raw CSV matched a year; remove ambiguity: {detail}")
+    return {year: matches[year][0] for year in sorted(requested)}
 
 
 def read_raw(spark, years) -> DataFrame:
+    raw_files = discover_raw_files(years)
     frames = []
-    for year in years:
-        path = os.path.join(config.RAW_DIR, f"rainfall_{year}.csv")
-        if not os.path.exists(path):
-            print(f"  [skip] {path} not found")
-            continue
+    for year, path in raw_files.items():
+        print(f"  [input] {year}: {path}")
         df = (
             spark.read.option("header", True)
             .schema(RAW_SCHEMA)
@@ -94,25 +245,40 @@ def looks_like_id(col):
     return col.rlike(r"^S\d+$")
 
 
-def clean_with_audit(df: DataFrame, sample_days: int | None,
-                     max_5min_mm: float = MAX_5MIN_MM):
+def clean_with_audit(
+    df: DataFrame,
+    sample_days: int | None,
+    max_5min_mm: float = MAX_5MIN_MM,
+    grid_tolerance_seconds: int = DEFAULT_GRID_TOLERANCE_SECONDS,
+):
     """Apply mutually exclusive cleaning rules and return audit-ready frames."""
     # ---- parse core fields -------------------------------------------------
-    df = df.withColumn("ts", F.to_timestamp("timestamp"))
+    df = df.withColumn("raw_ts", F.to_timestamp("timestamp"))
     df = df.withColumn("rain_mm", F.col("reading_value").cast(T.DoubleType()))
     df = df.withColumn("lat", F.col("location_latitude").cast(T.DoubleType()))
     df = df.withColumn("lon", F.col("location_longitude").cast(T.DoubleType()))
     df = df.withColumn("upd_ts", F.to_timestamp("update_timestamp"))
+    df = df.withColumn("reading_upd_ts", F.to_timestamp("reading_update_timestamp"))
+
+    # Source observations commonly arrive at hh:mm:59. Map each record to the
+    # nearest canonical five-minute endpoint and retain the shift for audit.
+    raw_epoch = F.col("raw_ts").cast("long")
+    canonical_epoch = (F.floor((raw_epoch + F.lit(150)) / F.lit(300)) * F.lit(300)).cast("long")
+    df = (
+        df.withColumn("ts", canonical_epoch.cast("timestamp"))
+        .withColumn("slot_shift_seconds", canonical_epoch - raw_epoch)
+    )
 
     # optional smoke-test subset: first N days of each year
     if sample_days is not None:
-        df = df.filter(F.dayofyear("ts") <= sample_days)
+        df = df.filter(F.dayofyear("raw_ts") <= sample_days)
 
     # Assign one priority-ordered reason so rule-level losses add to the raw total.
     df = df.withColumn(
         "drop_reason",
         F.when(F.col("station_id").isNull() | (F.trim("station_id") == ""), "missing_station")
-        .when(F.col("ts").isNull(), "invalid_timestamp")
+        .when(F.col("raw_ts").isNull(), "invalid_timestamp")
+        .when(F.abs(F.col("slot_shift_seconds")) > F.lit(int(grid_tolerance_seconds)), "timestamp_off_grid")
         .when(F.col("rain_mm").isNull(), "invalid_rainfall")
         .when(F.col("rain_mm") < 0, "negative_rainfall")
         .when(F.col("rain_mm") > F.lit(float(max_5min_mm)), "above_screening_bound"),
@@ -192,7 +358,26 @@ def cadence_audit(cleaned: DataFrame):
             F.sum("gap_over_5m").alias("gaps_over_5m"),
             F.sum("estimated_missing_slots").alias("estimated_missing_slots"),
             F.max("gap_seconds").alias("max_gap_seconds"),
+            F.min("slot_shift_seconds").alias("min_slot_shift_seconds"),
+            F.max("slot_shift_seconds").alias("max_slot_shift_seconds"),
         ).orderBy("year")
+    )
+
+
+def station_history_audit(cleaned: DataFrame):
+    """Summarise device and observed-coordinate continuity by station/year."""
+    return (
+        cleaned.groupBy("station_id", "src_year")
+        .agg(
+            F.min("raw_ts").alias("first_observation"),
+            F.max("raw_ts").alias("last_observation"),
+            F.countDistinct("station_device_id").alias("device_ids"),
+            F.countDistinct(F.struct("lat", "lon")).alias("coordinate_pairs"),
+            F.expr("percentile_approx(lat, 0.5)").alias("median_lat"),
+            F.expr("percentile_approx(lon, 0.5)").alias("median_lon"),
+        )
+        .withColumnRenamed("src_year", "year")
+        .orderBy("station_id", "year")
     )
 
 
@@ -246,6 +431,7 @@ def main() -> None:
                     help="Keep only the first N days of each year (smoke test)")
     ap.add_argument("--out", default=config.CLEAN_PARQUET)
     ap.add_argument("--max-5min-mm", type=float, default=MAX_5MIN_MM)
+    ap.add_argument("--grid-tolerance-seconds", type=int, default=DEFAULT_GRID_TOLERANCE_SECONDS)
     ap.add_argument("--hash-mode", choices=["full", "metadata"], default="full")
     ap.add_argument("--publish-legacy", action="store_true",
                     help="Also copy the immutable run output to the legacy --out path.")
@@ -255,16 +441,27 @@ def main() -> None:
     run = RunContext("clean", vars(args), hash_mode=args.hash_mode)
     spark = get_spark("clean_rainfall", driver_memory="11g")
 
+    print("\n[1/10] Discovering annual CSV inputs")
     raw = read_raw(spark, args.years)
-    run.record_input("raw_csvs", config.RAW_DIR)
-    df, rule_audit = clean_with_audit(raw, args.sample_days, args.max_5min_mm)
+    with driver_progress("Fingerprinting raw CSV inputs"):
+        run.record_input("raw_csvs", config.RAW_DIR)
+
+    print("\n[2/10] Defining parsing, cleaning, timestamp alignment and deduplication")
+    df, rule_audit = clean_with_audit(
+        raw, args.sample_days, args.max_5min_mm, args.grid_tolerance_seconds
+    )
+
+    station_history = station_history_audit(df)
 
     stations = resolve_stations(df).cache()
-    n_stations = stations.count()
+    with SparkProgressMonitor(spark, "[3/10] Resolving canonical station names and coordinates"):
+        n_stations = stations.count()
     print(f"  resolved {n_stations} stations")
 
     df = (
-        df.drop("station_name", "lat", "lon")
+        df.withColumn("observed_lat", F.col("lat"))
+        .withColumn("observed_lon", F.col("lon"))
+        .drop("station_name", "lat", "lon")
         .join(F.broadcast(stations), "station_id", "left")
         .withColumnRenamed("station_name_std", "station_name")
         .withColumnRenamed("lat_std", "lat")
@@ -272,20 +469,22 @@ def main() -> None:
     )
 
     keep = [
-        "station_id", "station_name", "lat", "lon",
+        "station_id", "station_name", "station_device_id", "lat", "lon",
+        "observed_lat", "observed_lon",
+        "raw_ts", "slot_shift_seconds", "src_year",
         "ts", "date", "year", "month", "day", "hour", "minute",
-        "dayofweek", "dayofyear", "rain_mm", "upd_ts",
+        "dayofweek", "dayofyear", "rain_mm", "upd_ts", "reading_upd_ts",
     ]
     df = df.select(*keep)
 
     out = run.artifact_path("rainfall_clean")
-    print(f"  writing Parquet -> {out} (partitioned by year)")
-    (
-        df.repartition("year")
-        .write.mode("overwrite")
-        .partitionBy("year")
-        .parquet(out)
-    )
+    with SparkProgressMonitor(spark, f"[4/10] Writing combined clean Parquet by year -> {out}"):
+        (
+            df.repartition("year")
+            .write.mode("overwrite")
+            .partitionBy("year")
+            .parquet(out)
+        )
 
     # Persist all audit evidence beside the cleaned dataset.
     check = spark.read.parquet(out)
@@ -296,23 +495,43 @@ def main() -> None:
     cadence_path = run.artifact_path("cadence_audit.csv")
     extreme_path = run.artifact_path("extreme_station_days.csv")
     trace_path = run.artifact_path("extreme_day_trace.csv")
-    audit.toPandas().to_csv(audit_path, index=False)
-    cadence.toPandas().to_csv(cadence_path, index=False)
-    extreme.toPandas().to_csv(extreme_path, index=False)
-    trace.toPandas().to_csv(trace_path, index=False)
+    history_path = run.artifact_path("station_history.csv")
+    with SparkProgressMonitor(spark, "[5/10] Computing rule-level cleaning audit"):
+        audit_pdf = audit.toPandas()
+    audit_pdf.to_csv(audit_path, index=False)
+
+    with SparkProgressMonitor(spark, "[6/10] Computing cadence and missing-slot audit"):
+        cadence_pdf = cadence.toPandas()
+    cadence_pdf.to_csv(cadence_path, index=False)
+
+    with SparkProgressMonitor(spark, "[7/10] Finding extreme station-days and their five-minute traces"):
+        extreme_pdf = extreme.toPandas()
+        trace_pdf = trace.toPandas()
+    extreme_pdf.to_csv(extreme_path, index=False)
+    trace_pdf.to_csv(trace_path, index=False)
+
+    with SparkProgressMonitor(spark, "[8/10] Summarising station, device and coordinate continuity"):
+        station_history_pdf = station_history.toPandas()
+        stations_pdf = stations.orderBy("station_id").toPandas()
+    station_history_pdf.to_csv(history_path, index=False)
 
     # Persist the station master table for reference.
     stations_path = run.artifact_path("stations.csv")
-    stations.orderBy("station_id").toPandas().to_csv(stations_path, index=False)
-    for name, path in {
-        "clean_parquet": out, "cleaning_rule_audit": audit_path,
-        "cadence_audit": cadence_path, "extreme_station_days": extreme_path,
-        "extreme_day_trace": trace_path, "stations": stations_path,
-    }.items():
-        run.record_artifact(name, path)
+    stations_pdf.to_csv(stations_path, index=False)
+    with driver_progress("[9/10] Hashing and recording immutable output artifacts"):
+        for name, path in {
+            "clean_parquet": out, "cleaning_rule_audit": audit_path,
+            "cadence_audit": cadence_path, "extreme_station_days": extreme_path,
+            "extreme_day_trace": trace_path, "stations": stations_path,
+            "station_history": history_path,
+        }.items():
+            run.record_artifact(name, path)
     if args.publish_legacy:
-        publish_copy(out, args.out)
-        publish_copy(stations_path, os.path.join(config.TABLES_DIR, "stations.csv"))
+        with driver_progress("[10/10] Publishing legacy-compatible clean dataset and station table"):
+            publish_copy(out, args.out)
+            publish_copy(stations_path, os.path.join(config.TABLES_DIR, "stations.csv"))
+    else:
+        print("\n[10/10] Legacy publish skipped (enable with --publish-legacy)")
     spark.stop()
     run.finalize()
     print(f"tracked clean run: {run.run_id} -> {run.path}")

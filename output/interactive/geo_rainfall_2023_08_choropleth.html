@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <style>html,body{height:100%;margin:0}.folium-map{min-height:650px}.map-title{position:fixed;top:12px;left:55px;z-index:999;background:white;padding:10px;max-width:55%;font:16px Georgia}</style>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_28eddf20a80a073da4ddb3739b48afd5 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+    
+                    <style>
+                        .foliumtooltip {
+                            
+                        }
+                       .foliumtooltip table{
+                            margin: auto;
+                        }
+                        .foliumtooltip tr{
+                            text-align: left;
+                        }
+                        .foliumtooltip th{
+                            padding: 2px; padding-right: 8px;
+                        }
+                    </style>
+            
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+</head>
+<body>
+    
+    <div class="map-title">Singapore rainfall — August 2023</div>
+    <div id="map-status" style="position:fixed;bottom:28px;left:12px;z-index:9999;background:white;padding:7px;font:12px Arial">Loading map. If this persists, check internet access or browser restrictions on JavaScript libraries.</div>
+    
+            <div class="folium-map" id="map_28eddf20a80a073da4ddb3739b48afd5" ></div>
+        
+</body>
+<script>
+    
+    
+    window.addEventListener('load', function() {
+    if (typeof L === 'undefined' || typeof map_28eddf20a80a073da4ddb3739b48afd5 === 'undefined') return;
+    document.getElementById('map-status').textContent =
+      'Background: OpenStreetMap / CARTO. Use the layer control to change map type.';
+    map_28eddf20a80a073da4ddb3739b48afd5.eachLayer(function(layer) {
+      if (layer instanceof L.TileLayer) {
+        layer.on('tileerror', function() {
+          document.getElementById('map-status').textContent =
+            'Background tiles could not load. Select the other map type. Rainfall polygons remain available.';
+        });
+      }
+    });
+    setTimeout(function() { map_28eddf20a80a073da4ddb3739b48afd5.invalidateSize(); }, 200);
+    });
+    
+    
+            var map_28eddf20a80a073da4ddb3739b48afd5 = L.map(
+                "map_28eddf20a80a073da4ddb3739b48afd5",
+                {
+                    center: [1.35, 103.82],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 11,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+            L.control.scale().addTo(map_28eddf20a80a073da4ddb3739b48afd5);
+
+            
+
+        
+    
+            var tile_layer_48676763864201ce4e1533444f43a88e = L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u00a9 OpenStreetMap contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            var tile_layer_f7f4f5e712cae13b0ab1c694c4255f95 = L.tileLayer(
+                "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png?key=cb1_4mx8_1_c338345e582e09626fa7e490",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u00a9 OpenStreetMap contributors \u00a9 CARTO",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_f7f4f5e712cae13b0ab1c694c4255f95.addTo(map_28eddf20a80a073da4ddb3739b48afd5);
+        
+    
+            var tile_layer_5a73ce2ccdb5247e35c2c54409278116 = L.tileLayer(
+                "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_4mx8_1_c338345e582e09626fa7e490",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u00a9 OpenStreetMap contributors \u00a9 CARTO",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            map_28eddf20a80a073da4ddb3739b48afd5.fitBounds(
+                [[1.2, 103.59], [1.49, 104.11]],
+                {}
+            );
+        
+    
+            var choropleth_f145b4fef191f6a230285c4d41ac2507 = L.featureGroup(
+                {
+}
+            );
+        
+    
+        function geo_json_0476f1fda0d461f92d3644ffd5b0796b_styler(feature) {
+            switch(feature.properties.h3_cell) {
+                case "876520c15ffffff": case "876520c90ffffff": case "876520d80ffffff": case "876520d82ffffff": case "876520d83ffffff": case "876520d84ffffff": case "876520d88ffffff": case "876520d8affffff": case "876520d8effffff": case "876520d90ffffff": case "876520d91ffffff": case "876520d94ffffff": case "876520d95ffffff": case "876520d9cffffff": case "876520db2ffffff": case "876526348ffffff": case "87652634bffffff": case "876526365ffffff": case "876526366ffffff": case "87652636dffffff": case "876526ac2ffffff": case "876526ac9ffffff": case "876526acbffffff": case "876526ad8ffffff": case "876526addffffff": 
+                    return {"color": "white", "fillColor": "#c7e9b4", "fillOpacity": 0.68, "opacity": 0.85, "weight": 0.7};
+                case "876520c18ffffff": 
+                    return {"color": "white", "fillColor": "#225ea8", "fillOpacity": 0.68, "opacity": 0.85, "weight": 0.7};
+                case "876520c84ffffff": case "876520cb0ffffff": case "876520cb1ffffff": case "876520cb5ffffff": case "876520cb6ffffff": case "876520d98ffffff": case "876520d99ffffff": case "876526360ffffff": case "876526362ffffff": case "876526acdffffff": case "876526ad1ffffff": 
+                    return {"color": "white", "fillColor": "#7fcdbb", "fillOpacity": 0.68, "opacity": 0.85, "weight": 0.7};
+                case "876520c94ffffff": case "876526349ffffff": 
+                    return {"color": "white", "fillColor": "#edf8b1", "fillOpacity": 0.68, "opacity": 0.85, "weight": 0.7};
+                case "876520c9cffffff": 
+                    return {"color": "white", "fillColor": "#ffffd9", "fillOpacity": 0.68, "opacity": 0.85, "weight": 0.7};
+                case "876520ca3ffffff": case "876520cadffffff": case "876520d92ffffff": case "876520d93ffffff": case "876526341ffffff": case "876526344ffffff": case "876526369ffffff": case "87652636cffffff": case "876526375ffffff": case "876526ac0ffffff": case "876526af1ffffff": 
+                    return {"color": "white", "fillColor": "#41b6c4", "fillOpacity": 0.68, "opacity": 0.85, "weight": 0.7};
+                default:
+                    return {"color": "white", "fillColor": "#1d91c0", "fillOpacity": 0.68, "opacity": 0.85, "weight": 0.7};
+            }
+        }
+        function geo_json_0476f1fda0d461f92d3644ffd5b0796b_highlighter(feature) {
+            switch(feature.properties.h3_cell) {
+                default:
+                    return {"fillOpacity": 0.8800000000000001, "weight": 2.7};
+            }
+        }
+
+        function geo_json_0476f1fda0d461f92d3644ffd5b0796b_onEachFeature(feature, layer) {
+
+            layer.on({
+                mouseout: function(e) {
+                    if(typeof e.target.setStyle === "function"){
+                            geo_json_0476f1fda0d461f92d3644ffd5b0796b.resetStyle(e.target);
+                    }
+                },
+                mouseover: function(e) {
+                    if(typeof e.target.setStyle === "function"){
+                        const highlightStyle = geo_json_0476f1fda0d461f92d3644ffd5b0796b_highlighter(e.target.feature)
+                        e.target.setStyle(highlightStyle);
+                    }
+                },
+            });
+        };
+        var geo_json_0476f1fda0d461f92d3644ffd5b0796b = L.geoJson(null, {
+                onEachFeature: geo_json_0476f1fda0d461f92d3644ffd5b0796b_onEachFeature,
+            
+                style: geo_json_0476f1fda0d461f92d3644ffd5b0796b_styler,
+            ...{
+}
+        });
+
+        function geo_json_0476f1fda0d461f92d3644ffd5b0796b_add (data) {
+            geo_json_0476f1fda0d461f92d3644ffd5b0796b
+                .addData(data);
+        }
+            geo_json_0476f1fda0d461f92d3644ffd5b0796b_add({"features": [{"geometry": {"coordinates": [[[103.69677872141864, 1.2600323526638828], [103.6936161438229, 1.273085857562912], [103.68063620859569, 1.2766583060000336], [103.67081927681035, 1.2671761673851956], [103.67398303975054, 1.254122462010027], [103.68696254934892, 1.2505510955330557], [103.69677872141864, 1.2600323526638828]]], "type": "Polygon"}, "properties": {"h3_cell": "876520c15ffffff", "observed_days": 31, "rainfall_mm": 85.6, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.64169005775776, 1.2873769441504388], [103.63852421381188, 1.300434136790211], [103.62553931115507, 1.3040080908200748], [103.61572068161026, 1.294523774677932], [103.61888770915346, 1.2814663854421937], [103.63187218286231, 1.2778935087518695], [103.64169005775776, 1.2873769441504388]]], "type": "Polygon"}, "properties": {"h3_cell": "876520c18ffffff", "observed_days": 31, "rainfall_mm": 227.0, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.73005668206191, 1.3727284457833153], [103.72689482930288, 1.3857896361250999], [103.7139127709379, 1.3893674975090269], [103.70409298950857, 1.3798830853530142], [103.70725602960225, 1.366821688417403], [103.72023766400768, 1.363244910039352], [103.73005668206191, 1.3727284457833153]]], "type": "Polygon"}, "properties": {"h3_cell": "876520c84ffffff", "observed_days": 31, "rainfall_mm": 134.2, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.75003202498903, 1.4403698463056456], [103.7468706087484, 1.4534356033603084], [103.73388728051121, 1.457016714997117], [103.72406579168772, 1.4475309857646812], [103.72722839645722, 1.4344650184408803], [103.74021130173824, 1.4308849904266852], [103.75003202498903, 1.4403698463056456]]], "type": "Polygon"}, "properties": {"h3_cell": "876520c90ffffff", "observed_days": 31, "rainfall_mm": 77.6, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.76617391623019, 1.4237255621345397], [103.76301354332344, 1.4367895895153682], [103.75003202498903, 1.4403698463056456], [103.74021130173824, 1.4308849904266852], [103.74337286361978, 1.4178207518910566], [103.75635395999393, 1.4142415801971544], [103.76617391623019, 1.4237255621345397]]], "type": "Polygon"}, "properties": {"h3_cell": "876520c94ffffff", "observed_days": 31, "rainfall_mm": 64.96, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.70442318829011, 1.428559523907606], [103.70125939583679, 1.4416256993884833], [103.68827330290391, 1.4452063511943547], [103.67845142825934, 1.4357197470642602], [103.68161640755007, 1.422653365538667], [103.6946020748655, 1.4190737939958247], [103.70442318829011, 1.428559523907606]]], "type": "Polygon"}, "properties": {"h3_cell": "876520c9cffffff", "observed_days": 30, "rainfall_mm": 36.993, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.72339966200339, 1.3501852493673712], [103.72023766400768, 1.363244910039352], [103.70725602960225, 1.366821688417403], [103.69743681770333, 1.357337723132587], [103.70060000263561, 1.3442778570911065], [103.71358121274736, 1.340702161511565], [103.72339966200339, 1.3501852493673712]]], "type": "Polygon"}, "properties": {"h3_cell": "876520ca3ffffff", "observed_days": 31, "rainfall_mm": 162.871, "station_support": 2}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.73288386211159, 1.311012815679601], [103.72972276103219, 1.3240692008486632], [103.71674335584503, 1.327644034221289], [103.70692547558666, 1.3181613981725167], [103.71008776365166, 1.3051048079733183], [103.72306674520632, 1.301531058660492], [103.73288386211159, 1.311012815679601]]], "type": "Polygon"}, "properties": {"h3_cell": "876520ca5ffffff", "observed_days": 31, "rainfall_mm": 195.8, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.67114445603302, 1.3158273443488453], [103.66797994070448, 1.3288858778212256], [103.65499597919748, 1.3324611303687033], [103.64517696052282, 1.3229767700210349], [103.64834266069617, 1.3099180366214058], [103.66132619491715, 1.3063438633041384], [103.67114445603302, 1.3158273443488453]]], "type": "Polygon"}, "properties": {"h3_cell": "876520cadffffff", "observed_days": 28, "rainfall_mm": 186.221, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.77565324020598, 1.384539990421036], [103.77249376464822, 1.3976007612456316], [103.75951447880468, 1.4011790738290721], [103.74969509003486, 1.3916955290336697], [103.75285575461484, 1.378634547395656], [103.76583461915885, 1.375057321174262], [103.77565324020598, 1.384539990421036]]], "type": "Polygon"}, "properties": {"h3_cell": "876520cb0ffffff", "observed_days": 31, "rainfall_mm": 117.6, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.75285575461484, 1.378634547395656], [103.74969509003486, 1.3916955290336697], [103.7367144159557, 1.395273615836724], [103.72689482930288, 1.3857896361250999], [103.73005668206191, 1.3727284457833153], [103.74303693351148, 1.369151443664681], [103.75285575461484, 1.378634547395656]]], "type": "Polygon"}, "properties": {"h3_cell": "876520cb1ffffff", "observed_days": 31, "rainfall_mm": 145.2, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.76899424074874, 1.3619980775689888], [103.76583461915885, 1.375057321174262], [103.75285575461484, 1.378634547395656], [103.74303693351148, 1.369151443664681], [103.74619774372594, 1.3560919904715376], [103.75917618663568, 1.3525158504049304], [103.76899424074874, 1.3619980775689888]]], "type": "Polygon"}, "properties": {"h3_cell": "876520cb5ffffff", "observed_days": 31, "rainfall_mm": 135.864, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.79844913178333, 1.3904447720276982], [103.79529084608956, 1.4035053299295246], [103.7823129524293, 1.4070838686539449], [103.77249376464822, 1.3976007612456316], [103.77565324020598, 1.384539990421036], [103.78863071389694, 1.3809625397353635], [103.79844913178333, 1.3904447720276982]]], "type": "Polygon"}, "properties": {"h3_cell": "876520cb6ffffff", "observed_days": 30, "rainfall_mm": 121.52, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.82686024698727, 1.2729488754283635], [103.82370465222179, 1.2859995923792602], [103.81073345967907, 1.2895722564279415], [103.80091828010843, 1.2800931115256537], [103.80407506487526, 1.2670421826877598], [103.81704583942683, 1.263470610446515], [103.82686024698727, 1.2729488754283635]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d80ffffff", "observed_days": 31, "rainfall_mm": 104.8, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.8335196239885, 1.2954783074250762], [103.8303641761699, 1.3085305652330042], [103.81739256597116, 1.3121043213006718], [103.80757682146245, 1.302624727348897], [103.81073345967907, 1.2895722564279415], [103.82370465222179, 1.2859995923792602], [103.8335196239885, 1.2954783074250762]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d82ffffff", "observed_days": 31, "rainfall_mm": 79.95, "station_support": 3}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.81073345967907, 1.2895722564279415], [103.80757682146245, 1.302624727348897], [103.79460381390042, 1.3061982645677672], [103.78478786375587, 1.2967182403282846], [103.78794569153153, 1.2836655583997016], [103.80091828010843, 1.2800931115256537], [103.81073345967907, 1.2895722564279415]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d83ffffff", "observed_days": 31, "rainfall_mm": 87.29, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.84298417403025, 1.2563281276952052], [103.83982962289532, 1.2693770873222006], [103.82686024698727, 1.2729488754283635], [103.81704583942683, 1.263470610446515], [103.82020158100457, 1.250421438054267], [103.83317053991512, 1.246850743216422], [103.84298417403025, 1.2563281276952052]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d84ffffff", "observed_days": 31, "rainfall_mm": 91.8, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.76515632658655, 1.2777582161735899], [103.76199731009213, 1.2908111070040817], [103.7490215196273, 1.2943842076158751], [103.73920516751623, 1.2849033302108017], [103.74236537188779, 1.2718502325843966], [103.75534074070964, 1.2682782189663198], [103.76515632658655, 1.2777582161735899]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d88ffffff", "observed_days": 28, "rainfall_mm": 94.55, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.77181346277109, 1.3002915590616473], [103.76865459216747, 1.3133459907224614], [103.75567838039409, 1.3169201785387645], [103.74586146074918, 1.3074388472971858], [103.7490215196273, 1.2943842076158751], [103.76199731009213, 1.2908111070040817], [103.77181346277109, 1.3002915590616473]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d8affffff", "observed_days": 31, "rainfall_mm": 96.8, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.78794569153153, 1.2836655583997016], [103.78478786375587, 1.2967182403282846], [103.77181346277109, 1.3002915590616473], [103.76199731009213, 1.2908111070040817], [103.76515632658655, 1.2777582161735899], [103.77813030725721, 1.2741859861099558], [103.78794569153153, 1.2836655583997016]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d8effffff", "observed_days": 31, "rainfall_mm": 98.466, "station_support": 2}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.86296524477538, 1.3239144771205327], [103.85981113567045, 1.3369680556361645], [103.84684051078222, 1.340543124818099], [103.83702441120512, 1.3310635213891884], [103.84017971194218, 1.3180097264283828], [103.85314992083924, 1.3144357511492726], [103.86296524477538, 1.3239144771205327]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d90ffffff", "observed_days": 29, "rainfall_mm": 98.772, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.84017971194218, 1.3180097264283828], [103.83702441120512, 1.3310635213891884], [103.82405238368568, 1.334638369686496], [103.81423607443938, 1.3251583306009358], [103.81739256597116, 1.3121043213006718], [103.8303641761699, 1.3085305652330042], [103.84017971194218, 1.3180097264283828]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d91ffffff", "observed_days": 31, "rainfall_mm": 76.8, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.86962702247828, 1.3464472209410154], [103.86647306098601, 1.359502331675446], [103.85350202044232, 1.3630784949698964], [103.84368535726132, 1.3535984532251129], [103.84684051078222, 1.340543124818099], [103.85981113567045, 1.3369680556361645], [103.86962702247828, 1.3464472209410154]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d92ffffff", "observed_days": 31, "rainfall_mm": 163.675, "station_support": 3}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.84684051078222, 1.340543124818099], [103.84368535726132, 1.3535984532251129], [103.83071291275664, 1.3571743939618144], [103.8208960389734, 1.3476939136597774], [103.82405238368568, 1.334638369686496], [103.83702441120512, 1.3310635213891884], [103.84684051078222, 1.340543124818099]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d93ffffff", "observed_days": 28, "rainfall_mm": 160.536, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.87908711294541, 1.3072884570011516], [103.87593404843456, 1.3203402822679837], [103.86296524477538, 1.3239144771205327], [103.85314992083924, 1.3144357511492726], [103.85630417742215, 1.3013837085594946], [103.8692725660839, 1.297810609071468], [103.87908711294541, 1.3072884570011516]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d94ffffff", "observed_days": 31, "rainfall_mm": 88.2, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.85630417742215, 1.3013837085594946], [103.85314992083924, 1.3144357511492726], [103.84017971194218, 1.3180097264283828], [103.8303641761699, 1.3085305652330042], [103.8335196239885, 1.2954783074250762], [103.84648941655877, 1.2919054258381935], [103.85630417742215, 1.3013837085594946]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d95ffffff", "observed_days": 31, "rainfall_mm": 90.7, "station_support": 2}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.80126264822724, 1.3287329583753318], [103.79810511316208, 1.3417887158082475], [103.7851298725534, 1.3453642125124283], [103.77531258687033, 1.3358828625009378], [103.77847131144851, 1.322826893715313], [103.79144613241269, 1.319252486101466], [103.80126264822724, 1.3287329583753318]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d98ffffff", "observed_days": 31, "rainfall_mm": 119.4, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.77847131144851, 1.322826893715313], [103.77531258687033, 1.3358828625009378], [103.76233595412299, 1.3394581377316552], [103.75251846714406, 1.3299763565698752], [103.75567838039409, 1.3169201785387645], [103.76865459216747, 1.3133459907224614], [103.77847131144851, 1.322826893715313]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d99ffffff", "observed_days": 30, "rainfall_mm": 138.56, "station_support": 2}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.81739256597116, 1.3121043213006718], [103.81423607443938, 1.3251583306009358], [103.80126264822724, 1.3287329583753318], [103.79144613241269, 1.319252486101466], [103.79460381390042, 1.3061982645677672], [103.80757682146245, 1.302624727348897], [103.81739256597116, 1.3121043213006718]]], "type": "Polygon"}, "properties": {"h3_cell": "876520d9cffffff", "observed_days": 31, "rainfall_mm": 82.0, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.89520611350403, 1.2906650705855967], [103.89205409376471, 1.3037151392497117], [103.87908711294541, 1.3072884570011516], [103.8692725660839, 1.297810609071468], [103.8724257783343, 1.284760322207776], [103.88539234514963, 1.2811881012808322], [103.89520611350403, 1.2906650705855967]]], "type": "Polygon"}, "properties": {"h3_cell": "876520db2ffffff", "observed_days": 31, "rainfall_mm": 103.031, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.85069876744701, 1.4247942458266518], [103.84754301135985, 1.437855891378856], [103.83456749692753, 1.441435975059935], [103.82474815577064, 1.4319533214013072], [103.82790510379843, 1.418891457480817], [103.84088020125792, 1.4153124653952815], [103.85069876744701, 1.4247942458266518]]], "type": "Polygon"}, "properties": {"h3_cell": "876526341ffffff", "observed_days": 31, "rainfall_mm": 160.186, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.88961661701941, 1.4140572276881727], [103.88646309917345, 1.4271169128115484], [103.87349081367931, 1.4306963596926854], [103.86367246089331, 1.4212150265222945], [103.86682717195734, 1.4081551200418099], [103.87979904280412, 1.404576767896853], [103.88961661701941, 1.4140572276881727]]], "type": "Polygon"}, "properties": {"h3_cell": "876526344ffffff", "observed_days": 31, "rainfall_mm": 172.0, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.81177123993554, 1.4355331765474129], [103.80861324750511, 1.4485967752863769], [103.79563451491184, 1.4521774907063398], [103.78581419426384, 1.4426935187449141], [103.78897337735312, 1.4296297046297402], [103.80195169064756, 1.426050077660259], [103.81177123993554, 1.4355331765474129]]], "type": "Polygon"}, "properties": {"h3_cell": "876526348ffffff", "observed_days": 31, "rainfall_mm": 101.404, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.78897337735312, 1.4296297046297402], [103.78581419426384, 1.4426935187449141], [103.77283406682604, 1.4462740046706695], [103.76301354332344, 1.4367895895153682], [103.76617391623019, 1.4237255621345397], [103.77915362303838, 1.4201461629826784], [103.78897337735312, 1.4296297046297402]]], "type": "Polygon"}, "properties": {"h3_cell": "876526349ffffff", "observed_days": 31, "rainfall_mm": 65.124, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.79563451491184, 1.4521774907063398], [103.79247547825899, 1.465242820887763], [103.77949493052677, 1.468824393791991], [103.76967383995807, 1.459339549344438], [103.77283406682604, 1.4462740046706695], [103.78581419426384, 1.4426935187449141], [103.79563451491184, 1.4521774907063398]]], "type": "Polygon"}, "properties": {"h3_cell": "87652634bffffff", "observed_days": 31, "rainfall_mm": 82.0, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.89907537578671, 1.374884703413618], [103.89592275530256, 1.3879411216502844], [103.88295270866693, 1.3915186038560476], [103.87313569671943, 1.3820385716395684], [103.87628951046435, 1.3689819323959067], [103.88925914311059, 1.3654055461835863], [103.89907537578671, 1.374884703413618]]], "type": "Polygon"}, "properties": {"h3_cell": "876526360ffffff", "observed_days": 31, "rainfall_mm": 134.067, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.90573954951385, 1.3974207074761007], [103.90258707730807, 1.4104786492811447], [103.88961661701941, 1.4140572276881727], [103.87979904280412, 1.404576767896853], [103.88295270866693, 1.3915186038560476], [103.89592275530256, 1.3879411216502844], [103.90573954951385, 1.3974207074761007]]], "type": "Polygon"}, "properties": {"h3_cell": "876526362ffffff", "observed_days": 31, "rainfall_mm": 122.409, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.89241191173835, 1.3523506552277513], [103.88925914311059, 1.3654055461835863], [103.87628951046435, 1.3689819323959067], [103.86647306098601, 1.359502331675446], [103.86962702247828, 1.3464472209410154], [103.88259624079902, 1.3428719305134003], [103.89241191173835, 1.3523506552277513]]], "type": "Polygon"}, "properties": {"h3_cell": "876526365ffffff", "observed_days": 31, "rainfall_mm": 109.692, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.9218596093765, 1.3807868051984382], [103.91870818298749, 1.3938430003218163], [103.90573954951385, 1.3974207074761007], [103.89592275530256, 1.3879411216502844], [103.89907537578671, 1.374884703413618], [103.9120435966013, 1.371308093923961], [103.9218596093765, 1.3807868051984382]]], "type": "Polygon"}, "properties": {"h3_cell": "876526366ffffff", "observed_days": 31, "rainfall_mm": 111.325, "station_support": 2}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.81458245249179, 1.3738082784132728], [103.81142521067585, 1.3868670965168712], [103.79844913178333, 1.3904447720276982], [103.78863071389694, 1.3809625397353635], [103.79178914602021, 1.3679035078267079], [103.8047648059384, 1.3643269218232323], [103.81458245249179, 1.3738082784132728]]], "type": "Polygon"}, "properties": {"h3_cell": "876526369ffffff", "observed_days": 31, "rainfall_mm": 152.2, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.85350202044232, 1.3630784949698964], [103.8503470142723, 1.376135353113937], [103.83737415311796, 1.3797123864988747], [103.82755671499852, 1.3702314688993098], [103.83071291275664, 1.3571743939618144], [103.84368535726132, 1.3535984532251129], [103.85350202044232, 1.3630784949698964]]], "type": "Polygon"}, "properties": {"h3_cell": "87652636cffffff", "observed_days": 31, "rainfall_mm": 171.6, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.83071291275664, 1.3571743939618144], [103.82755671499852, 1.3702314688993098], [103.81458245249179, 1.3738082784132728], [103.8047648059384, 1.3643269218232323], [103.80792219444629, 1.3512696321995095], [103.8208960389734, 1.3476939136597774], [103.83071291275664, 1.3571743939618144]]], "type": "Polygon"}, "properties": {"h3_cell": "87652636dffffff", "observed_days": 31, "rainfall_mm": 108.0, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.92852475636354, 1.4033221372921758], [103.92537347864891, 1.4163798547545623], [103.91240443285284, 1.419958659781236], [103.90258707730807, 1.4104786492811447], [103.90573954951385, 1.3974207074761007], [103.91870818298749, 1.3938430003218163], [103.92852475636354, 1.4033221372921758]]], "type": "Polygon"}, "properties": {"h3_cell": "876526375ffffff", "observed_days": 31, "rainfall_mm": 174.2, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.98631108687232, 1.3142774980477876], [103.98316384550351, 1.32732667288094], [103.97020253534913, 1.3309008672958333], [103.96038887546297, 1.3214247831844808], [103.9635373126707, 1.3083753817393313], [103.97649821413887, 1.3048022908252122], [103.98631108687232, 1.3142774980477876]]], "type": "Polygon"}, "properties": {"h3_cell": "876526ac0ffffff", "observed_days": 31, "rainfall_mm": 169.4, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.99297727590823, 1.3368023098795816], [103.98983018425668, 1.3498530169705738], [103.97686846575323, 1.3534283150973991], [103.96705424746357, 1.3439518022290862], [103.97020253534913, 1.3309008672958333], [103.98316384550351, 1.32732667288094], [103.99297727590823, 1.3368023098795816]]], "type": "Polygon"}, "properties": {"h3_cell": "876526ac2ffffff", "observed_days": 31, "rainfall_mm": 92.46, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.97020253534913, 1.3309008672958333], [103.96705424746357, 1.3439518022290862], [103.95409110407414, 1.3475268789822947], [103.94427665846267, 1.3380499185656416], [103.94742614175247, 1.3249987578933473], [103.96038887546297, 1.3214247831844808], [103.97020253534913, 1.3309008672958333]]], "type": "Polygon"}, "properties": {"h3_cell": "876526ac3ffffff", "observed_days": 31, "rainfall_mm": 202.206, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.90186842352671, 1.313192549921619], [103.89871655192294, 1.3262441557610176], [103.88574915743565, 1.3298185705483454], [103.87593404843456, 1.3203402822679837], [103.87908711294541, 1.3072884570011516], [103.89205409376471, 1.3037151392497117], [103.90186842352671, 1.313192549921619]]], "type": "Polygon"}, "properties": {"h3_cell": "876526ac9ffffff", "observed_days": 31, "rainfall_mm": 97.981, "station_support": 2}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.908531442891, 1.3357220038846693], [103.90537971955744, 1.348775143194048], [103.89241191173835, 1.3523506552277513], [103.88259624079902, 1.3428719305134003], [103.88574915743565, 1.3298185705483454], [103.89871655192294, 1.3262441557610176], [103.908531442891, 1.3357220038846693]]], "type": "Polygon"}, "properties": {"h3_cell": "876526acbffffff", "observed_days": 31, "rainfall_mm": 99.0, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.91798481896618, 1.2965691651841833], [103.91483399257189, 1.3096190135451318], [103.90186842352671, 1.313192549921619], [103.89205409376471, 1.3037151392497117], [103.89520611350403, 1.2906650705855967], [103.90817126987452, 1.287092632704095], [103.91798481896618, 1.2965691651841833]]], "type": "Polygon"}, "properties": {"h3_cell": "876526acdffffff", "observed_days": 31, "rainfall_mm": 133.4, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.94742614175247, 1.3249987578933473], [103.94427665846267, 1.3380499185656416], [103.93131209411246, 1.341624774303955], [103.92149742427458, 1.3321473688018695], [103.92464810213755, 1.319095984494087], [103.93761225547904, 1.3155222291315793], [103.94742614175247, 1.3249987578933473]]], "type": "Polygon"}, "properties": {"h3_cell": "876526aceffffff", "observed_days": 31, "rainfall_mm": 191.8, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.99964417213006, 1.359329079828624], [103.99649723033048, 1.3723813154706486], [103.98353510381529, 1.3759577175196378], [103.97372032732456, 1.366480779812325], [103.97686846575323, 1.3534283150973991], [103.98983018425668, 1.3498530169705738], [103.99964417213006, 1.359329079828624]]], "type": "Polygon"}, "properties": {"h3_cell": "876526ad1ffffff", "observed_days": 31, "rainfall_mm": 114.8, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.9607567745932, 1.370056958820162], [103.95760758956119, 1.383111177807297], [103.94464220420389, 1.3866882349273912], [103.93482641442738, 1.377209972072632], [103.93797679482367, 1.3641555269907661], [103.95094176984588, 1.3605795706662864], [103.9607567745932, 1.370056958820162]]], "type": "Polygon"}, "properties": {"h3_cell": "876526ad8ffffff", "observed_days": 31, "rainfall_mm": 110.0, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[103.95409110407414, 1.3475268789822947], [103.95094176984588, 1.3605795706662864], [103.93797679482367, 1.3641555269907661], [103.92816156491547, 1.3546776908528722], [103.93131209411246, 1.341624774303955], [103.94427665846267, 1.3380499185656416], [103.95409110407414, 1.3475268789822947]]], "type": "Polygon"}, "properties": {"h3_cell": "876526addffffff", "observed_days": 27, "rainfall_mm": 94.607, "station_support": 1}, "type": "Feature"}, {"geometry": {"coordinates": [[[104.02518624611226, 1.303558239408732], [104.02204124853384, 1.316605421210689], [104.00908320328486, 1.320178949280808], [103.9992705621912, 1.310704188735325], [104.00241675686988, 1.2976567773481495], [104.01537439575458, 1.29408435589934], [104.02518624611226, 1.303558239408732]]], "type": "Polygon"}, "properties": {"h3_cell": "876526af1ffffff", "observed_days": 31, "rainfall_mm": 150.348, "station_support": 1}, "type": "Feature"}], "type": "FeatureCollection"});
+
+        
+    
+    geo_json_0476f1fda0d461f92d3644ffd5b0796b.bindTooltip(
+    function(layer){
+    let div = L.DomUtil.create('div');
+    
+    let handleObject = feature => {
+        if (feature === null) {
+            return '';
+        } else if (typeof(feature)=='object') {
+            return JSON.stringify(feature);
+        } else {
+            return feature;
+        }
+    }
+    let fields = ["h3_cell", "rainfall_mm", "station_support", "observed_days"];
+    let aliases = ["H3 cell", "Estimated monthly rainfall (mm)", "Contributing stations", "Minimum eligible days in cell"];
+    let table = '<table>' +
+        String(
+        fields.map(
+        (v,i)=>
+        `<tr>
+            <th>${aliases[i].toLocaleString()}</th>
+            
+            <td>${handleObject(layer.feature.properties[v]).toLocaleString()}</td>
+        </tr>`).join(''))
+    +'</table>';
+    div.innerHTML=table;
+    
+    return div
+    }
+    ,{
+  "sticky": true,
+  "className": "foliumtooltip",
+});
+                     
+    
+            geo_json_0476f1fda0d461f92d3644ffd5b0796b.addTo(choropleth_f145b4fef191f6a230285c4d41ac2507);
+        
+    
+    var color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d = {};
+
+    
+    color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.color = d3.scale.threshold()
+              .domain([0.0, 0.6022890480961924, 1.2045780961923849, 1.806867144288577, 2.4091561923847697, 3.011445240480962, 3.613734288577154, 4.216023336673347, 4.8183123847695395, 5.420601432865731, 6.022890480961924, 6.625179529058117, 7.227468577154308, 7.829757625250501, 8.432046673346694, 9.034335721442886, 9.636624769539079, 10.23891381763527, 10.841202865731463, 11.443491913827655, 12.045780961923848, 12.64807001002004, 13.250359058116233, 13.852648106212426, 14.454937154308617, 15.05722620240481, 15.659515250501002, 16.261804298597195, 16.864093346693387, 17.46638239478958, 18.068671442885773, 18.67096049098196, 19.273249539078158, 19.87553858717435, 20.47782763527054, 21.080116683366736, 21.682405731462925, 22.284694779559118, 22.88698382765531, 23.489272875751503, 24.091561923847696, 24.69385097194389, 25.29614002004008, 25.898429068136274, 26.500718116232466, 27.103007164328655, 27.70529621242485, 28.30758526052104, 28.909874308617233, 29.51216335671343, 30.11445240480962, 30.716741452905815, 31.319030501002004, 31.921319549098197, 32.52360859719439, 33.12589764529058, 33.728186693386775, 34.33047574148297, 34.93276478957916, 35.53505383767535, 36.137342885771545, 36.73963193386774, 37.34192098196392, 37.94421003006012, 38.546499078156316, 39.148788126252505, 39.7510771743487, 40.35336622244489, 40.95565527054108, 41.557944318637276, 42.16023336673347, 42.762522414829654, 43.36481146292585, 43.967100511022046, 44.569389559118235, 45.17167860721443, 45.77396765531062, 46.37625670340681, 46.978545751503006, 47.5808347995992, 48.18312384769539, 48.78541289579158, 49.38770194388778, 49.98999099198397, 50.59228004008016, 51.19456908817635, 51.79685813627255, 52.399147184368736, 53.00143623246493, 53.60372528056113, 54.20601432865731, 54.80830337675351, 55.4105924248497, 56.01288147294589, 56.61517052104208, 57.21745956913828, 57.81974861723447, 58.42203766533066, 59.02432671342686, 59.62661576152304, 60.22890480961924, 60.831193857715434, 61.43348290581163, 62.03577195390781, 62.63806100200401, 63.240350050100204, 63.84263909819639, 64.44492814629258, 65.04721719438878, 65.64950624248497, 66.25179529058116, 66.85408433867735, 67.45637338677355, 68.05866243486975, 68.66095148296594, 69.26324053106212, 69.86552957915832, 70.4678186272545, 71.0701076753507, 71.6723967234469, 72.27468577154309, 72.87697481963929, 73.47926386773548, 74.08155291583167, 74.68384196392785, 75.28613101202404, 75.88842006012024, 76.49070910821644, 77.09299815631263, 77.69528720440881, 78.29757625250501, 78.8998653006012, 79.5021543486974, 80.10444339679358, 80.70673244488978, 81.30902149298598, 81.91131054108216, 82.51359958917836, 83.11588863727455, 83.71817768537075, 84.32046673346694, 84.92275578156314, 85.52504482965931, 86.1273338777555, 86.7296229258517, 87.3319119739479, 87.93420102204409, 88.53649007014029, 89.13877911823647, 89.74106816633267, 90.34335721442886, 90.94564626252505, 91.54793531062124, 92.15022435871744, 92.75251340681362, 93.35480245490982, 93.95709150300601, 94.55938055110221, 95.1616695991984, 95.7639586472946, 96.36624769539078, 96.96853674348696, 97.57082579158316, 98.17311483967936, 98.77540388777555, 99.37769293587175, 99.97998198396795, 100.58227103206413, 101.18456008016032, 101.78684912825652, 102.3891381763527, 102.9914272244489, 103.5937162725451, 104.19600532064128, 104.79829436873747, 105.40058341683367, 106.00287246492987, 106.60516151302606, 107.20745056112226, 107.80973960921843, 108.41202865731462, 109.01431770541082, 109.61660675350701, 110.21889580160321, 110.8211848496994, 111.4234738977956, 112.02576294589178, 112.62805199398798, 113.23034104208416, 113.83263009018036, 114.43491913827656, 115.03720818637275, 115.63949723446893, 116.24178628256513, 116.84407533066133, 117.44636437875752, 118.04865342685372, 118.6509424749499, 119.25323152304608, 119.85552057114228, 120.45780961923847, 121.06009866733467, 121.66238771543087, 122.26467676352706, 122.86696581162326, 123.46925485971944, 124.07154390781562, 124.67383295591182, 125.27612200400802, 125.87841105210421, 126.48070010020041, 127.08298914829659, 127.68527819639279, 128.287567244489, 128.88985629258516, 129.49214534068136, 130.09443438877756, 130.69672343687375, 131.29901248496995, 131.90130153306615, 132.5035905811623, 133.1058796292585, 133.7081686773547, 134.3104577254509, 134.9127467735471, 135.5150358216433, 136.1173248697395, 136.7196139178357, 137.32190296593188, 137.92419201402805, 138.52648106212425, 139.12877011022044, 139.73105915831664, 140.3333482064128, 140.935637254509, 141.5379263026052, 142.1402153507014, 142.7425043987976, 143.3447934468938, 143.94708249498998, 144.54937154308618, 145.15166059118238, 145.75394963927857, 146.35623868737477, 146.95852773547097, 147.56081678356716, 148.16310583166333, 148.7653948797595, 149.3676839278557, 149.9699729759519, 150.5722620240481, 151.17455107214428, 151.77684012024048, 152.37912916833668, 152.98141821643287, 153.58370726452907, 154.18599631262526, 154.78828536072146, 155.39057440881763, 155.99286345691382, 156.59515250501002, 157.19744155310622, 157.7997306012024, 158.4020196492986, 159.0043086973948, 159.606597745491, 160.20888679358717, 160.81117584168337, 161.41346488977956, 162.01575393787576, 162.61804298597195, 163.22033203406812, 163.82262108216432, 164.4249101302605, 165.0271991783567, 165.6294882264529, 166.2317772745491, 166.8340663226453, 167.4363553707415, 168.0386444188377, 168.6409334669339, 169.24322251503008, 169.84551156312628, 170.44780061122245, 171.05008965931862, 171.6523787074148, 172.254667755511, 172.8569568036072, 173.4592458517034, 174.0615348997996, 174.6638239478958, 175.266112995992, 175.86840204408819, 176.47069109218438, 177.07298014028058, 177.67526918837677, 178.27755823647294, 178.87984728456914, 179.48213633266533, 180.08442538076153, 180.68671442885773, 181.28900347695392, 181.8912925250501, 182.4935815731463, 183.09587062124248, 183.69815966933868, 184.30044871743488, 184.90273776553107, 185.50502681362724, 186.10731586172344, 186.70960490981963, 187.31189395791583, 187.91418300601202, 188.51647205410822, 189.11876110220442, 189.7210501503006, 190.3233391983968, 190.925628246493, 191.5279172945892, 192.1302063426854, 192.73249539078157, 193.33478443887773, 193.93707348697393, 194.53936253507013, 195.14165158316632, 195.74394063126252, 196.34622967935871, 196.9485187274549, 197.5508077755511, 198.1530968236473, 198.7553858717435, 199.3576749198397, 199.9599639679359, 200.5622530160321, 201.16454206412826, 201.76683111222445, 202.36912016032065, 202.97140920841684, 203.57369825651304, 204.1759873046092, 204.7782763527054, 205.3805654008016, 205.9828544488978, 206.585143496994, 207.1874325450902, 207.78972159318639, 208.39201064128255, 208.99429968937875, 209.59658873747495, 210.19887778557114, 210.80116683366734, 211.40345588176353, 212.00574492985973, 212.60803397795593, 213.21032302605212, 213.81261207414832, 214.41490112224452, 215.01719017034068, 215.61947921843685, 216.22176826653305, 216.82405731462924, 217.42634636272544, 218.02863541082164, 218.63092445891783, 219.23321350701403, 219.83550255511022, 220.43779160320642, 221.04008065130262, 221.6423696993988, 222.244658747495, 222.8469477955912, 223.44923684368737, 224.05152589178357, 224.65381493987977, 225.25610398797596, 225.85839303607213, 226.46068208416833, 227.06297113226452, 227.66526018036072, 228.26754922845691, 228.8698382765531, 229.4721273246493, 230.0744163727455, 230.6767054208417, 231.27899446893787, 231.88128351703406, 232.48357256513026, 233.08586161322646, 233.68815066132265, 234.29043970941885, 234.89272875751504, 235.49501780561124, 236.09730685370744, 236.69959590180363, 237.3018849498998, 237.904173997996, 238.50646304609216, 239.10875209418836, 239.71104114228456, 240.31333019038075, 240.91561923847695, 241.51790828657315, 242.12019733466934, 242.72248638276554, 243.32477543086173, 243.92706447895793, 244.52935352705413, 245.13164257515032, 245.73393162324652, 246.3362206713427, 246.93850971943888, 247.54079876753508, 248.14308781563125, 248.74537686372744, 249.34766591182364, 249.94995495991984, 250.55224400801603, 251.15453305611223, 251.75682210420842, 252.35911115230462, 252.96140020040082, 253.56368924849698, 254.16597829659318, 254.76826734468938, 255.37055639278557, 255.97284544088177, 256.575134488978, 257.17742353707416, 257.77971258517033, 258.38200163326655, 258.9842906813627, 259.5865797294589, 260.1888687775551, 260.7911578256513, 261.3934468737475, 261.9957359218437, 262.5980249699399, 263.20031401803607, 263.8026030661323, 264.40489211422846, 265.0071811623246, 265.60947021042085, 266.211759258517, 266.81404830661324, 267.4163373547094, 268.01862640280564, 268.6209154509018, 269.22320449899803, 269.8254935470942, 270.4277825951904, 271.0300716432866, 271.6323606913828, 272.234649739479, 272.83693878757515, 273.4392278356714, 274.04151688376754, 274.64380593186377, 275.24609497995993, 275.8483840280561, 276.45067307615227, 277.0529621242485, 277.65525117234466, 278.2575402204409, 278.85982926853706, 279.4621183166333, 280.06440736472945, 280.6666964128256, 281.26898546092184, 281.871274509018, 282.47356355711423, 283.0758526052104, 283.6781416533066, 284.2804307014028, 284.882719749499, 285.4850087975952, 286.0872978456914, 286.6895868937876, 287.2918759418838, 287.89416498997997, 288.49645403807614, 289.09874308617236, 289.70103213426853, 290.30332118236475, 290.9056102304609, 291.50789927855715, 292.1101883266533, 292.71247737474954, 293.3147664228457, 293.91705547094193, 294.5193445190381, 295.1216335671343, 295.7239226152305, 296.32621166332666, 296.9285007114229, 297.530789759519, 298.1330788076152, 298.7353678557114, 299.3376569038076, 299.9399459519038, 300.542235])
+              .range(['#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#ffffd9ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#edf8b1ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#c7e9b4ff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#7fcdbbff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#41b6c4ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#1d91c0ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#225ea8ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff', '#0c2c84ff']);
+    
+
+    color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.x = d3.scale.linear()
+              .domain([0.0, 300.542235])
+              .range([0, 450 - 50]);
+
+    color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.legend = L.control({position: 'topright'});
+    color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.legend.onAdd = function (map) {var div = L.DomUtil.create('div', 'legend'); return div};
+    color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.legend.addTo(map_28eddf20a80a073da4ddb3739b48afd5);
+
+    color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.xAxis = d3.svg.axis()
+        .scale(color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.x)
+        .orient("top")
+        .tickSize(1)
+        .tickValues([0.0, 37.567779375, 75.13555875, 112.703338125, 150.2711175, 187.838896875, 225.40667625, 262.974455625, 300.542235]);
+
+    color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.svg = d3.select(".legend.leaflet-control").append("svg")
+        .attr("id", 'legend')
+        .attr("width", 450)
+        .attr("height", 40);
+
+    color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.g = color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.svg.append("g")
+        .attr("class", "key")
+        .attr("fill", "black")
+        .attr("transform", "translate(25,16)");
+
+    color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.g.selectAll("rect")
+        .data(color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.color.range().map(function(d, i) {
+          return {
+            x0: i ? color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.x(color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.color.domain()[i - 1]) : color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.x.range()[0],
+            x1: i < color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.color.domain().length ? color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.x(color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.color.domain()[i]) : color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.x.range()[1],
+            z: d
+          };
+        }))
+      .enter().append("rect")
+        .attr("height", 40 - 30)
+        .attr("x", function(d) { return d.x0; })
+        .attr("width", function(d) { return d.x1 - d.x0; })
+        .style("fill", function(d) { return d.z; });
+
+    color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.g.call(color_map_50e7c6f0a2f62721ff1ba2d0dcc0dd7d.xAxis).append("text")
+        .attr("class", "caption")
+        .attr("y", 21)
+        .attr("fill", "black")
+        .text("Estimated rainfall \u2014 August 2023 (mm)");
+    
+            choropleth_f145b4fef191f6a230285c4d41ac2507.addTo(map_28eddf20a80a073da4ddb3739b48afd5);
+        
+    
+            var layer_control_ff41d9eb513e9de4f654c73c6d68c35d_layers = {
+                base_layers : {
+                    "OpenStreetMap streets" : tile_layer_48676763864201ce4e1533444f43a88e,
+                    "CARTO Light" : tile_layer_f7f4f5e712cae13b0ab1c694c4255f95,
+                    "CARTO Voyager" : tile_layer_5a73ce2ccdb5247e35c2c54409278116,
+                },
+                overlays :  {
+                    "Estimated rainfall \u2014 August 2023" : choropleth_f145b4fef191f6a230285c4d41ac2507,
+                },
+            };
+            let layer_control_ff41d9eb513e9de4f654c73c6d68c35d = L.control.layers(
+                layer_control_ff41d9eb513e9de4f654c73c6d68c35d_layers.base_layers,
+                layer_control_ff41d9eb513e9de4f654c73c6d68c35d_layers.overlays,
+                {
+  "position": "topright",
+  "collapsed": false,
+  "autoZIndex": true,
+}
+            ).addTo(map_28eddf20a80a073da4ddb3739b48afd5);
+
+        
+</script>
+</html>

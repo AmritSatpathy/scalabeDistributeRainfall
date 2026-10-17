@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <style>html,body{height:100%;margin:0}.folium-map{min-height:650px}.map-title{position:fixed;top:12px;left:55px;z-index:999;background:white;padding:10px;max-width:55%;font:16px Georgia}</style>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_f334c9cb88e6170a25a51c6086cb071f {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    <div class="map-title">Active rainfall gauges — 2017</div>
+    <div id="map-status" style="position:fixed;bottom:28px;left:12px;z-index:9999;background:white;padding:7px;font:12px Arial">Loading map. If this persists, check internet access or browser restrictions on JavaScript libraries.</div>
+    
+            <div class="folium-map" id="map_f334c9cb88e6170a25a51c6086cb071f" ></div>
+        
+</body>
+<script>
+    
+    
+    window.addEventListener('load', function() {
+    if (typeof L === 'undefined' || typeof map_f334c9cb88e6170a25a51c6086cb071f === 'undefined') return;
+    document.getElementById('map-status').textContent =
+      'Background: OpenStreetMap / CARTO. Use the layer control to change map type.';
+    map_f334c9cb88e6170a25a51c6086cb071f.eachLayer(function(layer) {
+      if (layer instanceof L.TileLayer) {
+        layer.on('tileerror', function() {
+          document.getElementById('map-status').textContent =
+            'Background tiles could not load. Select the other map type. Rainfall polygons remain available.';
+        });
+      }
+    });
+    setTimeout(function() { map_f334c9cb88e6170a25a51c6086cb071f.invalidateSize(); }, 200);
+    });
+    
+    
+            var map_f334c9cb88e6170a25a51c6086cb071f = L.map(
+                "map_f334c9cb88e6170a25a51c6086cb071f",
+                {
+                    center: [1.35, 103.82],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 11,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+            L.control.scale().addTo(map_f334c9cb88e6170a25a51c6086cb071f);
+
+            
+
+        
+    
+            var tile_layer_ab879a87c9e40f8edbefa7ba28b4cd7d = L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u00a9 OpenStreetMap contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            var tile_layer_7cad86aab3b2bfca9620ba20c805bd47 = L.tileLayer(
+                "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png?key=cb1_4mx8_1_c338345e582e09626fa7e490",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u00a9 OpenStreetMap contributors \u00a9 CARTO",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_7cad86aab3b2bfca9620ba20c805bd47.addTo(map_f334c9cb88e6170a25a51c6086cb071f);
+        
+    
+            var tile_layer_9bca7ec759ad9b5f5f45f88a3fca6f6e = L.tileLayer(
+                "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_4mx8_1_c338345e582e09626fa7e490",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u00a9 OpenStreetMap contributors \u00a9 CARTO",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            map_f334c9cb88e6170a25a51c6086cb071f.fitBounds(
+                [[1.2, 103.59], [1.49, 104.11]],
+                {}
+            );
+        
+    
+            var feature_group_6192112902eea6f87f5f7ada6edf6c17 = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var circle_marker_c383f8aa5fe1cb7969a7d830b8b22b4f = L.circleMarker(
+                [1.3524, 103.9007],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_c383f8aa5fe1cb7969a7d830b8b22b4f.bindTooltip(
+                `<div>
+                     Station: S06<br>Name: Paya Lebar<br>Coverage-qualified months: 3
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_7b6567c567d2d7f3e2dc5e5d72a61d6c = L.circleMarker(
+                [1.3415, 103.8334],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_7b6567c567d2d7f3e2dc5e5d72a61d6c.bindTooltip(
+                `<div>
+                     Station: S07<br>Name: Lornie Road<br>Coverage-qualified months: 10
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_d006b89294246c31e9d15193145e2c1e = L.circleMarker(
+                [1.3701, 103.8271],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_d006b89294246c31e9d15193145e2c1e.bindTooltip(
+                `<div>
+                     Station: S08<br>Name: Upper Thomson Road<br>Coverage-qualified months: 9
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_488b86d7e060b2d8294f3f9a1b7c6e4e = L.circleMarker(
+                [1.4172, 103.74855],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_488b86d7e060b2d8294f3f9a1b7c6e4e.bindTooltip(
+                `<div>
+                     Station: S100<br>Name: Woodlands Road<br>Coverage-qualified months: 11
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a24344f31cabcbd9c0f907a8af3e5b5c = L.circleMarker(
+                [1.35053, 103.7134],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_a24344f31cabcbd9c0f907a8af3e5b5c.bindTooltip(
+                `<div>
+                     Station: S101<br>Name: Corporation Road<br>Coverage-qualified months: 11
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_81f4b00eb5b1913972b89831ba6149a5 = L.circleMarker(
+                [1.189, 103.768],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_81f4b00eb5b1913972b89831ba6149a5.bindTooltip(
+                `<div>
+                     Station: S102<br>Name: Semakau Landfill<br>Coverage-qualified months: 9
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_ef64203da7ce63cf53182b39cdfadda7 = L.circleMarker(
+                [1.44387, 103.78538],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_ef64203da7ce63cf53182b39cdfadda7.bindTooltip(
+                `<div>
+                     Station: S104<br>Name: Woodlands Avenue 9<br>Coverage-qualified months: 7
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_d4d115cbf5069f3163ffaf140ed6e6ba = L.circleMarker(
+                [1.4168, 103.9673],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_d4d115cbf5069f3163ffaf140ed6e6ba.bindTooltip(
+                `<div>
+                     Station: S106<br>Name: Pulau Ubin<br>Coverage-qualified months: 7
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_9b07649286333491d8ebea8277787f25 = L.circleMarker(
+                [1.3135, 103.9625],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_9b07649286333491d8ebea8277787f25.bindTooltip(
+                `<div>
+                     Station: S107<br>Name: East Coast Parkway<br>Coverage-qualified months: 10
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_58ab78df36720e2328f780ad6742958e = L.circleMarker(
+                [1.2799, 103.8703],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_58ab78df36720e2328f780ad6742958e.bindTooltip(
+                `<div>
+                     Station: S108<br>Name: Marina Gardens Drive<br>Coverage-qualified months: 9
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_caf077bb17a99916d71072e6f6c30194 = L.circleMarker(
+                [1.3764, 103.8492],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_caf077bb17a99916d71072e6f6c30194.bindTooltip(
+                `<div>
+                     Station: S109<br>Name: Ang Mo Kio Avenue 5<br>Coverage-qualified months: 10
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_f3dc32d4ec2ec58653f971b1b637d07d = L.circleMarker(
+                [1.3746, 103.6938],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_f3dc32d4ec2ec58653f971b1b637d07d.bindTooltip(
+                `<div>
+                     Station: S11<br>Name: Choa Chu Kang Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_4cc5f74240135ae0a9ff8b2cd335d890 = L.circleMarker(
+                [1.36061, 103.8697],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_4cc5f74240135ae0a9ff8b2cd335d890.bindTooltip(
+                `<div>
+                     Station: S110<br>Name: Serangoon North Avenue 4<br>Coverage-qualified months: 3
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_6a33ae887a9ed0746cb38cc669899a06 = L.circleMarker(
+                [1.31055, 103.8365],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_6a33ae887a9ed0746cb38cc669899a06.bindTooltip(
+                `<div>
+                     Station: S111<br>Name: Scotts Road<br>Coverage-qualified months: 4
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_41319384845363638774fb5810575cfa = L.circleMarker(
+                [1.43854, 103.70131],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_41319384845363638774fb5810575cfa.bindTooltip(
+                `<div>
+                     Station: S112<br>Name: Lim Chu Kang Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_52ff10baf5ff909b54bcb1c98f7376ca = L.circleMarker(
+                [1.30648, 103.9104],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_52ff10baf5ff909b54bcb1c98f7376ca.bindTooltip(
+                `<div>
+                     Station: S113<br>Name: Marine Parade Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_b9f21eb1d10fa0ef4b2df5dde08dea5a = L.circleMarker(
+                [1.38, 103.73],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_b9f21eb1d10fa0ef4b2df5dde08dea5a.bindTooltip(
+                `<div>
+                     Station: S114<br>Name: Choa Chu Kang Avenue 4<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_57eb753ffdcfde99be214eb59f21c025 = L.circleMarker(
+                [1.29377, 103.61843],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_57eb753ffdcfde99be214eb59f21c025.bindTooltip(
+                `<div>
+                     Station: S115<br>Name: Tuas South Avenue 3<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_81aafdb1d10946bee0f607807b8d6b28 = L.circleMarker(
+                [1.281, 103.754],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_81aafdb1d10946bee0f607807b8d6b28.bindTooltip(
+                `<div>
+                     Station: S116<br>Name: West Coast Highway<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_273fe38594731b0cfe1e75eb05c4c18b = L.circleMarker(
+                [1.256, 103.679],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_273fe38594731b0cfe1e75eb05c4c18b.bindTooltip(
+                `<div>
+                     Station: S117<br>Name: Banyan Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a35373cbd41491d705f8e757197b5b13 = L.circleMarker(
+                [1.2994, 103.8461],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_a35373cbd41491d705f8e757197b5b13.bindTooltip(
+                `<div>
+                     Station: S118<br>Name: Handy Road<br>Coverage-qualified months: 8
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_33716c48450eb90a03ed0b5b7b2d810c = L.circleMarker(
+                [1.30105, 103.8666],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_33716c48450eb90a03ed0b5b7b2d810c.bindTooltip(
+                `<div>
+                     Station: S119<br>Name: Nicoll Highway<br>Coverage-qualified months: 11
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_b06507cf00f213a09428ad50eb955d28 = L.circleMarker(
+                [1.30874, 103.818],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_b06507cf00f213a09428ad50eb955d28.bindTooltip(
+                `<div>
+                     Station: S120<br>Name: Holland Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_8e28bf354e24ab7a54176c97eac8ddea = L.circleMarker(
+                [1.37288, 103.72244],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_8e28bf354e24ab7a54176c97eac8ddea.bindTooltip(
+                `<div>
+                     Station: S121<br>Name: Old Choa Chu Kang Road<br>Coverage-qualified months: 9
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_103008e5c9b7c19ba9b6a6a52b7345ac = L.circleMarker(
+                [1.41731, 103.8249],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_103008e5c9b7c19ba9b6a6a52b7345ac.bindTooltip(
+                `<div>
+                     Station: S122<br>Name: Sembawang Road<br>Coverage-qualified months: 10
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_70bf703ff4a218f779bf001bad8f01b5 = L.circleMarker(
+                [1.3214, 103.8577],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_70bf703ff4a218f779bf001bad8f01b5.bindTooltip(
+                `<div>
+                     Station: S123<br>Name: Towner Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_48e7f23651f1a4428cd20dd0ba8a605f = L.circleMarker(
+                [1.3678, 103.9826],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_48e7f23651f1a4428cd20dd0ba8a605f.bindTooltip(
+                `<div>
+                     Station: S24<br>Name: Upper Changi Road North<br>Coverage-qualified months: 10
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a05fa0bf9a015e07579f5666dd00d1a1 = L.circleMarker(
+                [1.3678, 103.998],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_a05fa0bf9a015e07579f5666dd00d1a1.bindTooltip(
+                `<div>
+                     Station: S24B<br>Name: Upper Changi Road North<br>Coverage-qualified months: 4
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_2708406ae8fbac5796c5b550fba90cac = L.circleMarker(
+                [1.387, 103.935],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_2708406ae8fbac5796c5b550fba90cac.bindTooltip(
+                `<div>
+                     Station: S29<br>Name: Pasir Ris Drive 12<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_ec45658aa74d96936708ab926692bfcc = L.circleMarker(
+                [1.3081, 103.71],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_ec45658aa74d96936708ab926692bfcc.bindTooltip(
+                `<div>
+                     Station: S33<br>Name: Jurong Pier Road<br>Coverage-qualified months: 10
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_ef0b9ab72ec3032299b0a10e5c5cab32 = L.circleMarker(
+                [1.3329, 103.7556],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_ef0b9ab72ec3032299b0a10e5c5cab32.bindTooltip(
+                `<div>
+                     Station: S35<br>Name: Old Toh Tuck Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_bb91bfaab42bfb6ce5f47bcce24c7817 = L.circleMarker(
+                [1.3382, 103.8657],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_bb91bfaab42bfb6ce5f47bcce24c7817.bindTooltip(
+                `<div>
+                     Station: S36<br>Name: Upper Serangoon Road<br>Coverage-qualified months: 8
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_da9c65a7e88d1c0c6facc099bbbe26fc = L.circleMarker(
+                [1.4044, 103.78962],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_da9c65a7e88d1c0c6facc099bbbe26fc.bindTooltip(
+                `<div>
+                     Station: S40<br>Name: Mandai Lake Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_c01a2e285dcf77c48a29552cca5ab173 = L.circleMarker(
+                [1.3399, 103.8878],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_c01a2e285dcf77c48a29552cca5ab173.bindTooltip(
+                `<div>
+                     Station: S43<br>Name: Kim Chuan Road<br>Coverage-qualified months: 11
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_4eb1c2c7417905d0763718b01e1b7715 = L.circleMarker(
+                [1.34583, 103.68166],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_4eb1c2c7417905d0763718b01e1b7715.bindTooltip(
+                `<div>
+                     Station: S44<br>Name: Nanyang Avenue<br>Coverage-qualified months: 8
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_39253c9841217b39d3e7dbaa651472a2 = L.circleMarker(
+                [1.3416, 103.8106],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_39253c9841217b39d3e7dbaa651472a2.bindTooltip(
+                `<div>
+                     Station: S46<br>Name: Sime Road<br>Coverage-qualified months: 10
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_e0186d540ed6757e2ca1595efefba46e = L.circleMarker(
+                [1.3337, 103.7768],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_e0186d540ed6757e2ca1595efefba46e.bindTooltip(
+                `<div>
+                     Station: S50<br>Name: Clementi Road<br>Coverage-qualified months: 9
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_32b321b1a648701785c8a79b269fea6e = L.circleMarker(
+                [1.3837, 103.886],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_32b321b1a648701785c8a79b269fea6e.bindTooltip(
+                `<div>
+                     Station: S55<br>Name: Buangkok Green<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_5735fa0cf5412760719add20a60d8a33 = L.circleMarker(
+                [1.25, 103.8279],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_5735fa0cf5412760719add20a60d8a33.bindTooltip(
+                `<div>
+                     Station: S60<br>Name: Sentosa<br>Coverage-qualified months: 3
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_f64ec47d503f3f988d13e19aa1b680b1 = L.circleMarker(
+                [1.323, 103.9217],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_f64ec47d503f3f988d13e19aa1b680b1.bindTooltip(
+                `<div>
+                     Station: S61<br>Name: Chai Chee Street<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_86cbd4cf6ee290ff95655a16bc90f7ad = L.circleMarker(
+                [1.3275, 103.7042],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_86cbd4cf6ee290ff95655a16bc90f7ad.bindTooltip(
+                `<div>
+                     Station: S63<br>Name: International Road<br>Coverage-qualified months: 10
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_00d98ebd8188481075639c50aca40e4e = L.circleMarker(
+                [1.3824, 103.7603],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_00d98ebd8188481075639c50aca40e4e.bindTooltip(
+                `<div>
+                     Station: S64<br>Name: Bukit Panjang Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_eabab9e3281604a2599eed630fe7b462 = L.circleMarker(
+                [1.4387, 103.7363],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_eabab9e3281604a2599eed630fe7b462.bindTooltip(
+                `<div>
+                     Station: S66<br>Name: Kranji Way<br>Coverage-qualified months: 11
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_e3753b46d3727961339b991e6177ecac = L.circleMarker(
+                [1.37, 103.805],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_e3753b46d3727961339b991e6177ecac.bindTooltip(
+                `<div>
+                     Station: S69<br>Name: Upper Peirce Reservoir Park<br>Coverage-qualified months: 11
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_1255c0c259c163f2afaf5f89fa4c7bc3 = L.circleMarker(
+                [1.2923, 103.7815],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_1255c0c259c163f2afaf5f89fa4c7bc3.bindTooltip(
+                `<div>
+                     Station: S71<br>Name: Kent Ridge Road<br>Coverage-qualified months: 9
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_bb260d6375be9ec39446a5adaacac24b = L.circleMarker(
+                [1.2937, 103.8125],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_bb260d6375be9ec39446a5adaacac24b.bindTooltip(
+                `<div>
+                     Station: S77<br>Name: Alexandra Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_0ecae466684f65e962888fb6817c636c = L.circleMarker(
+                [1.30703, 103.89067],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_0ecae466684f65e962888fb6817c636c.bindTooltip(
+                `<div>
+                     Station: S78<br>Name: Poole Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_bef7ff5c516673f3204a91ba515df4a8 = L.circleMarker(
+                [1.3004, 103.8372],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_bef7ff5c516673f3204a91ba515df4a8.bindTooltip(
+                `<div>
+                     Station: S79<br>Name: Somerset Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_5d0190d2c368550581e8fd5735c923dd = L.circleMarker(
+                [1.4029, 103.9092],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_5d0190d2c368550581e8fd5735c923dd.bindTooltip(
+                `<div>
+                     Station: S81<br>Name: Punggol Central<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a9a48a6b8e91d73661f565f5697b7a9f = L.circleMarker(
+                [1.3247, 103.6351],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_a9a48a6b8e91d73661f565f5697b7a9f.bindTooltip(
+                `<div>
+                     Station: S82<br>Name: Tuas West Road<br>Coverage-qualified months: 2
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_5b838a8b8aeb297a50e031d0e3a1dd36 = L.circleMarker(
+                [1.3437, 103.9444],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_5b838a8b8aeb297a50e031d0e3a1dd36.bindTooltip(
+                `<div>
+                     Station: S84<br>Name: Simei Avenue<br>Coverage-qualified months: 10
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_21479ef7a7e0bf2de878e9ab2b47a0d8 = L.circleMarker(
+                [1.3427, 103.8482],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_21479ef7a7e0bf2de878e9ab2b47a0d8.bindTooltip(
+                `<div>
+                     Station: S88<br>Name: Toa Payoh North<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_157cb6256be647db83dd5e85f762b1fb = L.circleMarker(
+                [1.31985, 103.66162],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_157cb6256be647db83dd5e85f762b1fb.bindTooltip(
+                `<div>
+                     Station: S89<br>Name: Tuas Road<br>Coverage-qualified months: 9
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a2119a857f9558d0b4739e9b545a6307 = L.circleMarker(
+                [1.3191, 103.8191],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_a2119a857f9558d0b4739e9b545a6307.bindTooltip(
+                `<div>
+                     Station: S90<br>Name: Bukit Timah Road<br>Coverage-qualified months: 11
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_ea0496856ace52113a8852abf1a338f4 = L.circleMarker(
+                [1.41284, 103.86922],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_ea0496856ace52113a8852abf1a338f4.bindTooltip(
+                `<div>
+                     Station: S900<br>Name: Seletar Aerospace View<br>Coverage-qualified months: 11
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_1f0f8546ff785089db54be512121d3e0 = L.circleMarker(
+                [1.4301, 103.8308],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_1f0f8546ff785089db54be512121d3e0.bindTooltip(
+                `<div>
+                     Station: S91<br>Name: Yishun Avenue 5<br>Coverage-qualified months: 10
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_f759597b44e371dec760dd952e97cf06 = L.circleMarker(
+                [1.2841, 103.7886],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_f759597b44e371dec760dd952e97cf06.bindTooltip(
+                `<div>
+                     Station: S92<br>Name: South Buona Vista Road<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_49cd5ecf6182ab4e139d602405421a7a = L.circleMarker(
+                [1.3662, 103.9528],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_49cd5ecf6182ab4e139d602405421a7a.bindTooltip(
+                `<div>
+                     Station: S94<br>Name: Pasir Ris Street 51<br>Coverage-qualified months: 12
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_a86f39fc700de8d8c03e0f02cac3e283 = L.circleMarker(
+                [1.3175, 104.0307],
+                {"bubblingMouseEvents": true, "color": "white", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#2b8cbe", "fillOpacity": 0.95, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 7, "stroke": true, "weight": 1.4}
+            ).addTo(feature_group_6192112902eea6f87f5f7ada6edf6c17);
+        
+    
+            circle_marker_a86f39fc700de8d8c03e0f02cac3e283.bindTooltip(
+                `<div>
+                     Station: S96<br>Name: Tanah Merah Coast Road<br>Coverage-qualified months: 3
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            feature_group_6192112902eea6f87f5f7ada6edf6c17.addTo(map_f334c9cb88e6170a25a51c6086cb071f);
+        
+    
+            var layer_control_46a3b6351829951e144d0067c04ab797_layers = {
+                base_layers : {
+                    "OpenStreetMap streets" : tile_layer_ab879a87c9e40f8edbefa7ba28b4cd7d,
+                    "CARTO Light" : tile_layer_7cad86aab3b2bfca9620ba20c805bd47,
+                    "CARTO Voyager" : tile_layer_9bca7ec759ad9b5f5f45f88a3fca6f6e,
+                },
+                overlays :  {
+                    "Active gauges \u2014 2017" : feature_group_6192112902eea6f87f5f7ada6edf6c17,
+                },
+            };
+            let layer_control_46a3b6351829951e144d0067c04ab797 = L.control.layers(
+                layer_control_46a3b6351829951e144d0067c04ab797_layers.base_layers,
+                layer_control_46a3b6351829951e144d0067c04ab797_layers.overlays,
+                {
+  "position": "topright",
+  "collapsed": false,
+  "autoZIndex": true,
+}
+            ).addTo(map_f334c9cb88e6170a25a51c6086cb071f);
+
+        
+</script>
+</html>

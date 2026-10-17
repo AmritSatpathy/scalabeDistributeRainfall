@@ -45,7 +45,7 @@ def main() -> None:
     random.Random(args.seed).shuffle(measured)
     failures = []
     for warmup, repetition, compute, model in warmups + measured:
-        event_dir = run.artifact_path(f"spark-events/{compute}/{model}/{'warmup' if warmup else f'rep_{repetition}'}")
+        event_dir = run.artifact_path(f"spark-events/{compute}/{model}/{'warmup_' + str(repetition) if warmup else 'rep_' + str(repetition)}")
         cmd = [
             sys.executable, os.path.join(config.PROJECT_ROOT, "src", "task2_train.py"),
             "--model", model, "--compute", compute, "--features", args.features,
@@ -61,6 +61,8 @@ def main() -> None:
             failures.append({"compute": compute, "model": model, "repetition": repetition, "warmup": warmup, "exit_code": rc})
             if not args.continue_on_error: break
     if os.path.exists(csv_path): run.record_artifact("benchmark_results", csv_path)
+    event_root = run.artifact_path("spark-events")
+    if os.path.exists(event_root): run.record_artifact("spark_event_logs", event_root)
     run.write_json("failures", failures)
     run.finalize("complete" if not failures else "partial")
     if failures and not args.continue_on_error: raise SystemExit(1)
