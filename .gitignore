@@ -6,6 +6,7 @@ venv/
 
 # --- Raw & processed data (large; regenerate via download_data.py / clean_data.py) ---
 data/processed/
+data/raw
 data/_spark_tmp/
 
 # --- Spark / logs ---
