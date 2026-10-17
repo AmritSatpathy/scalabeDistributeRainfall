@@ -55,6 +55,10 @@ def geojson(frame, value):
             properties["station_support"] = int(row["station_support"])
         if "observed_days" in row:
             properties["observed_days"] = int(row["observed_days"])
+        if "station_months" in row:
+            properties["station_months"] = int(row["station_months"])
+        if "minimum_station_months" in row:
+            properties["minimum_station_months"] = int(row["minimum_station_months"])
         features.append({"type": "Feature", "properties": properties,
                          "geometry": {"type": "Polygon", "coordinates": [ring]}})
     if not features:
@@ -141,6 +145,12 @@ def add_choropleth(m, data, title, bins, difference=False, show=True):
     if "observed_days" in values:
         fields.append("observed_days")
         aliases.append("Minimum eligible days in cell")
+    if "station_months" in values:
+        fields.append("station_months")
+        aliases.append("Contributing station-months")
+    if "minimum_station_months" in values:
+        fields.append("minimum_station_months")
+        aliases.append("Minimum months per station")
     folium.GeoJsonTooltip(fields=fields, aliases=aliases, localize=True).add_to(layer.geojson)
     return layer
 
