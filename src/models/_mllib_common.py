@@ -6,7 +6,7 @@ is defined in exactly one place:
 
     StringIndexer(station_id -> station_idx)
     VectorAssembler(base features + threshold + station_idx -> features_raw)
-    [optional] MinMaxScaler(features_raw -> features)   # linear/neural/fm
+    [optional] MinMaxScaler(features_raw -> features)   # linear/neural models
     classifier(featuresCol = features | features_raw)
 """
 from __future__ import annotations

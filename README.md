@@ -12,11 +12,11 @@ The project has two deliverables:
   **probability that a station accumulates more than a given amount of rain in
   the next 30 minutes**, given `(station, prediction time, threshold)`.
 
-It also includes a **distributed-computing + model-comparison benchmark**: the
-prediction task is run across **8 models** (6 Spark MLlib + PyTorch LSTM/TCN on
-GPU) and **5 Spark compute configurations** (single-process, two Spark
-Standalone layouts, two Docker clusters), comparing accuracy against
-training/prediction time. The final report is in
+It also includes a **distributed-computing + model-comparison benchmark**. The
+reduced primary study compares **three Spark MLlib models** (GBT, Random Forest,
+and Multilayer Perceptron) under the same expanding-window temporal protocol.
+Compute-configuration runners remain available for local, Spark Standalone,
+and Docker deployments. The final report is in
 [`report/REPORT.md`](report/REPORT.md).
 
 Companion docs: [`RUNBOOK.md`](RUNBOOK.md) is the copy-paste guide to running
@@ -92,7 +92,7 @@ rainTheFall/
 │   ├── benchmark.py            # sweep models × compute configs
 │   ├── benchmark_plot.py       # benchmark figures (heatmaps, scaling, AUC)
 │   ├── models/                 # MODEL registry (one file per model)
-│   │   ├── gbt.py rf random_forest.py logreg.py linear_svc.py mlp.py fm.py
+│   │   ├── gbt.py random_forest.py logreg.py linear_svc.py mlp.py
 │   │   └── lstm.py tcn.py       # PyTorch (GPU) sequence models
 │   └── compute/                # COMPUTE-CONFIG registry
 │       ├── local_configs.py standalone_configs.py
@@ -199,8 +199,9 @@ fit within a single machine:
 
 ### Step 5 — Benchmark study (models × compute configurations)
 
-The project compares **8 models** across **compute configurations**, recording
-train time, predict time, and AUC. See models/configs with:
+The primary study compares **three Spark MLlib models** across controlled
+temporal folds, recording train time, prediction time, and out-of-time metrics.
+See the available models and compute configurations with:
 
 ```bash
 ./.venv/bin/python src/task2_train.py --list
@@ -210,7 +211,7 @@ train time, predict time, and AUC. See models/configs with:
 
 ```bash
 # sweep all MLlib models on local[*]
-./.venv/bin/python src/benchmark.py --models gbt rf logreg linsvc mlp fm \
+./.venv/bin/python src/benchmark.py --models gbt rf mlp \
     --computes local-all
 ```
 

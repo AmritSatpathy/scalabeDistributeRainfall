@@ -13,7 +13,7 @@ file task2_train writes), tagged with the model and compute-config names.
 Usage
 -----
     # all MLlib models on local[*]:
-    python src/benchmark.py --models gbt rf logreg linsvc mlp fm --computes local-all
+    python src/benchmark.py --models gbt rf --computes local-all
 
     # scaling study: GBT across local parallelism levels:
     python src/benchmark.py --models gbt --computes local-2 local-4 local-8 local-all

@@ -54,7 +54,6 @@ Notes / honest caveats:
 | **M2** | Random Forest | Spark MLlib | Yes | Yes | No | Low | TODO |
 | **M3** | Linear SVC (SVM) | Spark MLlib | Yes | Yes | No | Low | TODO |
 | **M4** | Multilayer Perceptron | Spark MLlib | Yes (only NN in MLlib) | Yes | No | Low | TODO |
-| **M5** | Factorization Machines | Spark MLlib | Yes | Yes | No | Low-Med | Optional |
 | **M6** | XGBoost / LightGBM on Spark | XGBoost4J / SynapseML | No | Yes | **Optional** | Med-High | Stretch |
 | **M7** | LSTM / GRU | PyTorch | No | No (single GPU) | **Yes** | Med | TODO (key comparison) |
 | **M8** | 1D-CNN / Temporal Conv | PyTorch | No | No | Yes | Med | Optional |

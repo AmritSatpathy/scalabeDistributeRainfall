@@ -11,8 +11,7 @@ Copy-paste commands to run the rainfall prediction (Task 2) across all models
 and all compute tiers. Run everything from the project root in a WSL terminal
 with the venv Python (`./.venv/bin/python`).
 
-- **Models (8):** `gbt`, `rf`, `logreg`, `linsvc`, `mlp`, `fm` (Spark MLlib,
-  CPU) + `lstm`, `tcn` (PyTorch, GPU).
+- **Primary models:** `gbt`, `rf` and `mlp` (Spark MLlib, CPU).
 - **Compute tiers (registry names):** `local-all`, `local-2/4/8`,
   `standalone-2x2`, `standalone-4x2`, `docker-2w`, `docker-3w`.
 
@@ -51,11 +50,11 @@ python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt   # first t
 
 ## 1. LOCAL — single process (`local[*]`)
 
-### 1a. All 6 MLlib models
+### 1a. Reduced MLlib comparison
 
 ```bash
 ./.venv/bin/python src/benchmark.py \
-    --models gbt rf logreg linsvc mlp fm \
+    --models gbt rf mlp \
     --computes local-all
 ```
 
@@ -164,7 +163,7 @@ docker compose -f docker/docker-compose.yml down
 ## 4. Generate the comparison figures
 
 ```bash
-# model-quality study (all 8 models): -> output/figures/model_auc_all.png etc.
+# model-quality study: -> output/figures/model_auc_all.png etc.
 ./.venv/bin/python src/benchmark_plot.py
 
 # compute-config study (tiers x models): -> output/figures/*_compute.png
@@ -179,7 +178,7 @@ docker compose -f docker/docker-compose.yml down
 ```bash
 cd ~/rainTheFall
 # MLlib models
-./.venv/bin/python src/benchmark.py --models gbt rf logreg linsvc mlp fm --computes local-all
+./.venv/bin/python src/benchmark.py --models gbt rf mlp --computes local-all
 # deep models
 ./.venv/bin/python src/task2_deep.py --model lstm --epochs 8
 ./.venv/bin/python src/task2_deep.py --model tcn  --epochs 8
@@ -199,7 +198,7 @@ in section 4.
 |------------|---------|
 | See models + configs | `python src/task2_train.py --list` |
 | One model, local | `python src/task2_train.py --model gbt --compute local-all --no-save` |
-| All MLlib, local | `python src/benchmark.py --models gbt rf logreg linsvc mlp fm --computes local-all` |
+| Reduced MLlib comparison | `python src/benchmark.py --models gbt rf mlp --computes local-all` |
 | Deep model (GPU) | `python src/task2_deep.py --model lstm --epochs 8` |
 | Standalone cluster | `cluster/start_standalone.sh 4 2 3g` then `--compute standalone-4x2` |
 | Docker cluster | `docker compose -f docker/docker-compose.yml up -d --scale spark-worker=2` then `docker/run_sweep.sh docker-2w` |

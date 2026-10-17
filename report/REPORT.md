@@ -272,7 +272,7 @@ logging train time, predict time, and AUC to CSV.
 
 ### 6.1 Model comparison (predictive error vs cost)
 
-Eight models on their best configuration, ranked by AUC-PR:
+Seven retained models on their best configuration, ranked by AUC-PR:
 
 | Model | Framework | Train (s) | Predict (s) | AUC-ROC | AUC-PR |
 |-------|-----------|-----------|-------------|---------|--------|
@@ -283,14 +283,12 @@ Eight models on their best configuration, ranked by AUC-PR:
 | **TCN (1D-CNN)** | PyTorch (GPU) | **80** | **0.4** | 0.915 | 0.473 |
 | Linear SVC | MLlib (CPU) | 44 | 5.4 | 0.875 | 0.468 |
 | Logistic Regression | MLlib (CPU) | 28 | 4.9 | 0.897 | 0.436 |
-| Factorization Machines | MLlib (CPU) | 278 | 5.5 | 0.814 | 0.196 |
 
 ![All models — AUC-ROC vs AUC-PR](../output/figures/model_auc_all.png)
 
 - **GBT is best overall** on both AUC-ROC and AUC-PR → the graded choice.
 - The non-linear models (GBT, MLP, RF) and the deep sequence models (LSTM, TCN)
-  cluster at the top on AUC-ROC (~0.90–0.925); the linear models trail;
-  Factorization Machines clearly underperform on this feature set.
+  cluster at the top on AUC-ROC (~0.90–0.925), while the linear models trail.
 - The **LSTM/TCN match the best MLlib models on AUC-ROC despite training on ~20×
   less data** (400 k sampled rows vs 8 M, bounded by 4 GB VRAM) and are by far
   the fastest (train ~75–80 s, predict 0.4 s) — the best accuracy-per-compute.

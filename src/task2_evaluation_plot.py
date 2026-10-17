@@ -14,6 +14,7 @@ import pandas as pd
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from run_artifacts import RunContext, latest_artifact  # noqa: E402
+from progress_utils import StepProgress  # noqa: E402
 
 
 def main() -> None:
@@ -27,6 +28,7 @@ def main() -> None:
     run = RunContext("evaluation_plots", vars(args), hash_mode=args.hash_mode)
     run.record_input("training_tables", args.tables)
     out = run.artifact_path("figures"); os.makedirs(out, exist_ok=True)
+    progress = StepProgress(3, "Task 2 evaluation figures")
 
     raw = pd.read_csv(os.path.join(args.tables, "reliability_raw.csv"))
     cal = pd.read_csv(os.path.join(args.tables, "reliability_isotonic.csv"))
@@ -43,6 +45,7 @@ def main() -> None:
     for ax in axes.flat[len(thresholds):]: ax.axis("off")
     axes.flat[0].legend(); fig.suptitle("Reliability by rainfall threshold", y=1.01)
     fig.tight_layout(); fig.savefig(os.path.join(out, "reliability_by_threshold.png"), dpi=180, bbox_inches="tight"); plt.close(fig)
+    progress.update("reliability panels written")
 
     metrics = pd.read_csv(os.path.join(args.tables, "metrics_by_threshold.csv"))
     fig, ax = plt.subplots(figsize=(9, 5))
@@ -52,6 +55,7 @@ def main() -> None:
     ax.set_xscale("log"); ax.set_ylim(0, 1); ax.set_xlabel("Rainfall threshold q (mm)")
     ax.set_ylabel("Metric"); ax.set_title("Positive-class performance at validation-selected cutoff")
     ax.legend(); fig.tight_layout(); fig.savefig(os.path.join(out, "positive_class_metrics.png"), dpi=180); plt.close(fig)
+    progress.update("positive-class figure written")
 
     baselines = pd.read_csv(os.path.join(args.tables, "baseline_metrics.csv"))
     fig, ax = plt.subplots(figsize=(9, 5))
@@ -63,6 +67,7 @@ def main() -> None:
     fig.tight_layout(); fig.savefig(os.path.join(out, "brier_vs_baselines.png"), dpi=180); plt.close(fig)
 
     run.record_artifact("figures", out); run.finalize()
+    progress.finish("baseline figure and manifest written")
     print(f"evaluation figures -> {run.path}")
 
 

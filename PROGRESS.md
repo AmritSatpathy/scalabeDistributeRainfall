@@ -146,7 +146,7 @@ Models: **M0** GBT + **M1** LogReg (done) · **M2** RandomForest · **M3** Linea
    memory, shuffle partitions via CLI/env in `spark_utils.py`/`config.py` so the
    same scripts run on E0–E2 unchanged. *(unlocks everything else)*
 2. **D2 — more MLlib models.** Extend `--model` to `rf`, `linsvc`, `mlp`
-   (+ optional `fm`) → model-comparison table. Cheap, stays distributed.
+   → model-comparison table. The reduced experiment retains GBT and Random Forest.
 3. **D5 + E1 — local Standalone cluster.** Launch scripts (`cluster/`), run
    Task 2, capture timing vs E0.
 4. **D6 + E2 — Docker Spark cluster.** `docker/docker-compose.yml` (configurable

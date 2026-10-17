@@ -7,6 +7,47 @@ import time
 from contextlib import contextmanager
 
 
+class StepProgress:
+    """Small determinate progress bar for sequential orchestration steps."""
+
+    def __init__(self, total: int, label: str, width: int = 28):
+        if total < 1:
+            raise ValueError("progress total must be positive")
+        self.total = total
+        self.label = label
+        self.width = width
+        self.current = 0
+        self.started = time.monotonic()
+        self.is_tty = sys.stdout.isatty()
+        self._render("starting")
+
+    def update(self, detail: str = "") -> None:
+        self.current = min(self.total, self.current + 1)
+        self._render(detail)
+
+    def finish(self, detail: str = "complete") -> None:
+        self.current = self.total
+        self._render(detail)
+        if self.is_tty:
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+
+    def _render(self, detail: str) -> None:
+        fraction = self.current / self.total
+        filled = int(round(self.width * fraction))
+        bar = "#" * filled + "-" * (self.width - filled)
+        elapsed = time.monotonic() - self.started
+        message = (
+            f"[{bar}] {100.0 * fraction:5.1f}% | {self.label} "
+            f"{self.current}/{self.total} | {detail} | elapsed {elapsed:,.0f}s"
+        )
+        if self.is_tty:
+            sys.stdout.write("\r" + message[:158].ljust(158))
+            sys.stdout.flush()
+        else:
+            print(message, flush=True)
+
+
 class SparkProgressMonitor:
     """Poll Spark's status tracker while the Python driver is blocked."""
 

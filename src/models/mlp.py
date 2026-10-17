@@ -18,10 +18,13 @@ def _build_pipeline(feature_cols, station_id_col="station_id"):
     n_features = len(feature_cols)
 
     def clf(features_col):
-        # Feedforward net: input -> 32 -> 16 -> 2 (binary output layer).
+        # Bounded distributed feed-forward network for the reduced temporal
+        # experiment: input -> 32 -> 16 -> 2. A larger block reduces scheduler
+        # overhead, while 30 iterations keeps the full two-fold study practical.
         return MultilayerPerceptronClassifier(
             labelCol="label", featuresCol=features_col,
-            layers=[n_features, 32, 16, 2], maxIter=100, blockSize=128, seed=42,
+            layers=[n_features, 32, 16, 2], maxIter=30, blockSize=512,
+            tol=1e-6, seed=42,
         )
 
     return make_pipeline(feature_cols, clf, NEEDS_SCALING)
@@ -33,4 +36,5 @@ SPEC = ModelSpec(
     description="Multilayer Perceptron (feedforward NN, MLlib)",
     needs_scaling=NEEDS_SCALING,
     build_pipeline=_build_pipeline,
+    extra={"hidden_layers": [32, 16], "max_iter": 30, "block_size": 512},
 )

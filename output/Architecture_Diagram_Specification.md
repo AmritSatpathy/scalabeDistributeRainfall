@@ -38,7 +38,6 @@ This diagram set documents the rainfall study as an academic systems-and-model a
 | M3 | Logistic Regression | Documents scaled features, a regularised linear logit, and native probability output. | Model architecture atlas |
 | M4 | Linear SVC | Documents scaled features, the maximum-margin classifier, and the absence of native probability output. | Model architecture atlas |
 | M5 | Spark MLlib MLP | Documents the implemented feed-forward network `[input, 32, 16, 2]`. | Model architecture atlas |
-| M6 | Factorization Machines | Documents the linear term plus learned rank-8 pairwise interactions. | Model architecture atlas |
 | M7 | LSTM sequence model | Documents the recent-rain sequence encoder, static-context fusion, and PyTorch classification head. | Model architecture atlas |
 | M8 | Temporal CNN | Documents the standard and dilated temporal convolutions, global pooling, context fusion, and PyTorch head. | Model architecture atlas |
 | A7 | Controlled experiment design | Shows how a frozen dataset and resource contract should feed matched local, Standalone, and Docker runs. | Systems evaluation |

@@ -16,6 +16,7 @@ import deep_dataset as dd  # noqa: E402
 import models as model_registry  # noqa: E402
 import task2_features as tf  # noqa: E402
 from run_artifacts import RunContext, latest_artifact, publish_copy  # noqa: E402
+from progress_utils import SparkProgressMonitor, StepProgress, driver_progress  # noqa: E402
 from spark_utils import get_spark  # noqa: E402
 
 
@@ -49,7 +50,9 @@ def main() -> None:
     args = ap.parse_args()
     args.data = args.data or latest_artifact("clean", "clean_parquet") or config.CLEAN_PARQUET
     run = RunContext("deep_train", vars(args), hash_mode=args.hash_mode)
-    run.record_input("clean_parquet", args.data)
+    with driver_progress("fingerprinting sequence-model input"):
+        run.record_input("clean_parquet", args.data)
+    progress = StepProgress(4, f"Task 2 {args.model} workflow")
 
     import torch
     from models._torch_common import (
@@ -58,11 +61,13 @@ def main() -> None:
     )
     spec = model_registry.get_model(args.model)
     spark = get_spark(f"task2_deep_{run.run_id}")
-    data = dd.build_sequences(
-        spark, args.data, args.thresholds, args.validation_year, args.test_year,
-        seq_len=args.seq_len, max_rows_per_split=args.max_rows,
-    )
+    with SparkProgressMonitor(spark, "building exact-cadence sequence datasets"):
+        data = dd.build_sequences(
+            spark, args.data, args.thresholds, args.validation_year, args.test_year,
+            seq_len=args.seq_len, max_rows_per_split=args.max_rows,
+        )
     spark.stop()
+    progress.update("sequence datasets ready")
     device = get_device()
     ytr = data["y_train"]
     pos, neg = float((ytr == 1).sum()), float((ytr == 0).sum())
@@ -72,10 +77,12 @@ def main() -> None:
                       epochs=args.epochs, batch_size=args.batch_size, lr=args.lr,
                       pos_weight=neg / max(pos, 1.0), device=device)
     train_secs = time.perf_counter() - t0
+    progress.update("neural model fitted")
     val_prob = predict_proba(net, data["X_validation_seq"], data["X_validation_stat"], device=device)
     t0 = time.perf_counter()
     test_prob = predict_proba(net, data["X_test_seq"], data["X_test_stat"], device=device)
     predict_secs = time.perf_counter() - t0
+    progress.update("validation and test predictions ready")
     cal_x, cal_y = fit_isotonic(data["y_validation"], val_prob)
     val_cal = apply_isotonic(val_prob, cal_x, cal_y)
     test_cal = apply_isotonic(test_prob, cal_x, cal_y)
@@ -126,7 +133,8 @@ def main() -> None:
     run.record_artifact("tables", tables); run.record_artifact("model", model_path)
     if args.publish_canonical:
         publish_copy(model_path, os.path.join(config.MODELS_DIR, f"rainfall_{args.model}.pt"))
-    run.finalize(); print(json.dumps(metadata, indent=2))
+    run.finalize(); progress.finish("evaluation and artifacts complete")
+    print(json.dumps(metadata, indent=2))
 
 
 if __name__ == "__main__":

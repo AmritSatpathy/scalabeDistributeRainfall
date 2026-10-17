@@ -25,6 +25,7 @@ import config  # noqa: E402
 import task2_features as tf  # noqa: E402
 from spark_utils import get_spark  # noqa: E402
 from run_artifacts import RunContext, latest_artifact, publish_copy  # noqa: E402
+from progress_utils import SparkProgressMonitor, StepProgress, driver_progress  # noqa: E402
 
 from pyspark.sql import functions as F  # noqa: E402
 
@@ -49,6 +50,7 @@ def main() -> None:
     run.record_input("clean_parquet", args.data)
     # More shuffle partitions so the per-station window sorts spread out.
     spark = get_spark("task2_build_features", driver_memory="11g", shuffle_partitions=200)
+    progress = StepProgress(3, "Task 2 feature materialisation")
 
     df = spark.read.parquet(args.data)
     if args.sample_days is not None:
@@ -70,16 +72,20 @@ def main() -> None:
 
     immutable_out = run.artifact_path("features_base")
     print(f"writing base features -> {immutable_out}")
-    (
-        base.write.mode("overwrite")
-        .partitionBy("year")
-        .parquet(immutable_out)
-    )
+    with SparkProgressMonitor(spark, "writing year-partitioned feature Parquet"):
+        (
+            base.write.mode("overwrite")
+            .partitionBy("year")
+            .parquet(immutable_out)
+        )
+    progress.update("feature Parquet written")
 
     chk = spark.read.parquet(immutable_out)
     print("feature rows per year:")
-    chk.groupBy("year").count().orderBy("year").show()
-    print("TOTAL feature rows:", chk.count())
+    with SparkProgressMonitor(spark, "validating feature counts by year"):
+        chk.groupBy("year").count().orderBy("year").show()
+        print("TOTAL feature rows:", chk.count())
+    progress.update("feature counts validated")
     metadata = {
         "feature_version": FEATURE_VERSION,
         "history_interval": "(t-W, t]",
@@ -88,11 +94,13 @@ def main() -> None:
         "base_feature_cols": tf.BASE_FEATURE_COLS,
     }
     run.write_json("feature_contract", metadata)
-    run.record_artifact("features_base", immutable_out)
-    if args.publish_legacy:
-        publish_copy(immutable_out, args.out)
+    with driver_progress("hashing and publishing feature artifacts"):
+        run.record_artifact("features_base", immutable_out)
+        if args.publish_legacy:
+            publish_copy(immutable_out, args.out)
     spark.stop()
     run.finalize()
+    progress.finish("feature contract and manifest written")
     print(f"tracked feature run: {run.run_id} -> {run.path}")
 
 

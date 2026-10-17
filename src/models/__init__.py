@@ -7,18 +7,15 @@ orchestrator, the benchmark harness) selects models purely by name via
 """
 from __future__ import annotations
 
-from .base import ModelSpec
-from . import gbt, random_forest, logreg, linear_svc, mlp, fm
+from importlib import import_module
 
-# Deep-learning specs are imported lazily: importing them pulls in torch, which
-# we don't want to require for pure-MLlib runs. They register only if torch is
-# importable.
-_DEEP_SPECS = []
-try:
-    from . import lstm, tcn  # noqa: F401
-    _DEEP_SPECS = [lstm.SPEC, tcn.SPEC]
-except Exception:  # torch not installed / unavailable
-    _DEEP_SPECS = []
+from .base import ModelSpec
+from . import gbt, random_forest, logreg, linear_svc, mlp
+
+_DEEP_MODELS = {
+    "lstm": "LSTM over recent rainfall sequence (GPU)",
+    "tcn": "1D-CNN / temporal conv over rainfall sequence (GPU)",
+}
 
 # name -> ModelSpec
 _REGISTRY: dict[str, ModelSpec] = {
@@ -29,21 +26,23 @@ _REGISTRY: dict[str, ModelSpec] = {
         logreg.SPEC,
         linear_svc.SPEC,
         mlp.SPEC,
-        fm.SPEC,
-        *_DEEP_SPECS,
     )
 }
 
 
 def available_models() -> list[str]:
     """List of registered model names (CLI choices)."""
-    return list(_REGISTRY.keys())
+    return [*_REGISTRY.keys(), *_DEEP_MODELS.keys()]
 
 
 def get_model(name: str) -> ModelSpec:
+    if name in _DEEP_MODELS and name not in _REGISTRY:
+        # Import torch only for an explicitly requested deep-learning run.
+        module = import_module(f"{__name__}.{name}")
+        _REGISTRY[name] = module.SPEC
     if name not in _REGISTRY:
         raise KeyError(
-            f"unknown model {name!r}; available: {', '.join(_REGISTRY)}"
+            f"unknown model {name!r}; available: {', '.join(available_models())}"
         )
     return _REGISTRY[name]
 
@@ -54,4 +53,7 @@ def mllib_models() -> list[str]:
 
 def describe() -> list[tuple[str, str, str]]:
     """(name, framework, description) for every model - handy for the report."""
-    return [(s.name, s.framework, s.description) for s in _REGISTRY.values()]
+    rows = [(s.name, s.framework, s.description) for s in _REGISTRY.values()]
+    rows.extend((name, "torch", description) for name, description in _DEEP_MODELS.items()
+                if name not in _REGISTRY)
+    return rows
