@@ -376,8 +376,7 @@ pipeline on the actual dataset; no results were fabricated by the AI.
 
 ## 9. Reproducibility
 
-Full instructions are in `README.md` and `RUNBOOK.md`. In brief, from the
-project root:
+Full instructions are in `README.md`. In brief, from the project root:
 
 ```
 python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt

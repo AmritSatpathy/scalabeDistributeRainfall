@@ -19,11 +19,9 @@ Standalone layouts, two Docker clusters), comparing accuracy against
 training/prediction time. The final report is in
 [`report/REPORT.md`](report/REPORT.md).
 
-Companion docs: [`RUNBOOK.md`](RUNBOOK.md) is the copy-paste guide to running
-every model on every compute tier (local, Standalone, Docker);
-[`RATIONALE.md`](RATIONALE.md) explains *why* each decision was made;
-[`EXPERIMENT_MATRIX.md`](EXPERIMENT_MATRIX.md) is the master plan for the
-compute-environment × model study; [`PROGRESS.md`](PROGRESS.md) tracks status.
+Companion docs: [`RATIONALE.md`](RATIONALE.md) explains *why* each design
+decision was made; the full write-up is in
+[`report/REPORT.md`](report/REPORT.md).
 
 ---
 
@@ -102,9 +100,7 @@ rainTheFall/
 ├── report/                     # REPORT.md (project report)
 ├── requirements.txt
 ├── README.md
-├── RATIONALE.md                # why each choice was made
-├── EXPERIMENT_MATRIX.md        # compute-env × model master plan
-└── PROGRESS.md                 # status
+└── RATIONALE.md                # why each design choice was made
 ```
 
 Large artifacts (`data/raw`, `data/processed`, `.venv`, logs, `cluster/logs`)

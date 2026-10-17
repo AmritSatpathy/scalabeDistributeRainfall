@@ -81,6 +81,11 @@ def main() -> None:
     ap.add_argument("--thresholds", type=float, nargs="*", default=tf.DEFAULT_THRESHOLDS)
     ap.add_argument("--no-save", action="store_true",
                     help="Do not overwrite the canonical models/rainfall_model (for benchmark runs).")
+    ap.add_argument("--save-as", default=None,
+                    help="Save this fitted model under models/<SAVE_AS>/ (and its "
+                         "metadata as models/<SAVE_AS>_metadata.json) instead of the "
+                         "canonical rainfall_model. Lets every comparison model be "
+                         "persisted without clobbering the graded GBT.")
     ap.add_argument("--benchmark-csv",
                     default=os.path.join(config.TABLES_DIR, "benchmark_results.csv"))
     ap.add_argument("--list", action="store_true",
@@ -207,12 +212,22 @@ def main() -> None:
     )
     print(f"appended benchmark row -> {args.benchmark_csv}")
 
-    # --- persist model (skip on benchmark sweeps) ---------------------------
-    if args.no_save:
-        print("--no-save set: not overwriting the canonical model.")
+    # --- persist model ------------------------------------------------------
+    # Resolve the save target:
+    #   --save-as NAME -> models/NAME/            (+ models/NAME_metadata.json)
+    #   default (gbt)  -> models/rainfall_model/  (the canonical graded model)
+    #   --no-save      -> nothing
+    if args.no_save and not args.save_as:
+        print("--no-save set: not persisting this model.")
     else:
-        print(f"saving model -> {MODEL_DIR}")
-        fitted.write().overwrite().save(MODEL_DIR)
+        if args.save_as:
+            model_dir = os.path.join(config.MODELS_DIR, args.save_as)
+            meta_path = os.path.join(config.MODELS_DIR, f"{args.save_as}_metadata.json")
+        else:
+            model_dir = MODEL_DIR
+            meta_path = META_PATH
+        print(f"saving model -> {model_dir}")
+        fitted.write().overwrite().save(model_dir)
         meta = {
             "model_kind": args.model,
             "model_description": spec.description,
@@ -232,9 +247,9 @@ def main() -> None:
             "metrics_overall": overall,
             "metrics_by_threshold": per_thr,
         }
-        with open(META_PATH, "w") as fh:
+        with open(meta_path, "w") as fh:
             json.dump(meta, fh, indent=2)
-        print(f"wrote metadata -> {META_PATH}")
+        print(f"wrote metadata -> {meta_path}")
 
     spark.stop()
 
