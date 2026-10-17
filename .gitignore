@@ -5,7 +5,6 @@ __pycache__/
 venv/
 
 # --- Raw & processed data (large; regenerate via download_data.py / clean_data.py) ---
-data/raw/
 data/processed/
 data/_spark_tmp/
 
