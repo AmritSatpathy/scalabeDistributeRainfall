@@ -214,7 +214,7 @@ train time, predict time, and AUC. See models/configs with:
 ./.venv/bin/python src/task2_deep.py --model tcn  --epochs 8
 ```
 
-**Spark Standalone cluster** (real executors; see `cluster/README.md`):
+**Spark Standalone cluster** (separate executor JVMs on the same host; see `cluster/README.md`):
 
 ```bash
 cluster/start_standalone.sh 4 2 3g          # workers cores mem
@@ -240,9 +240,47 @@ docker compose -f docker/docker-compose.yml down
     --results output/tables/benchmark_compute.csv --suffix _compute  # compute study
 ```
 
+**How to read the compute benchmark (important caveats).**
+
+- All configurations — `local[*]`, Spark Standalone, and Docker — run on **one
+  physical laptop**. The Standalone and Docker layouts use separate executor
+  *processes* / *containers* with real network shuffle, so they demonstrate
+  process-level distribution and its overhead, **not** multi-machine scale-out.
+  They do not add physical CPUs, memory, or network interfaces.
+- The resource settings shown (driver/executor memory, cores, shuffle
+  partitions) are **requested** Spark settings, not verified runtime
+  allocations. Docker Compose in particular does not impose hard CPU/memory
+  limits, so a worker's advertised cores/memory are requests.
+- **Docker benchmark rows:** training times are the measured values from the
+  sweep logs; the AUC values are reused from the corresponding runs (AUC is
+  configuration-invariant — the learning objective does not change with
+  deployment) and the predict times are approximate. Automatic result capture
+  from inside the container was affected by a WSL2 container-to-host write-back
+  limitation, so these rows were reconciled from logs rather than captured
+  automatically. See `docker/README.md`.
+- Because resources and sampled rows are not held exactly constant across
+  configurations, the timings are **descriptive observations**, not a
+  controlled estimate of deployment overhead.
+
 The written report is in [`report/REPORT.md`](report/REPORT.md).
 
 Example for a tighter machine: `--max-train-rows 4000000`.
+
+### Lightweight tests
+
+Fast synthetic tests (no full data, no retraining) that pin the temporal-window
+semantics and the saved-model input contract:
+
+```bash
+./.venv/bin/python tests/test_temporal_windows.py      # rolling/future window behaviour
+./.venv/bin/python tests/test_saved_model_contract.py  # saved GBT loads + feature-schema match
+```
+
+The window tests document that the look-back `rangeBetween(-1800, 0)` is
+inclusive of both endpoints (7 readings at 5-min cadence) while the future label
+`rangeBetween(1, 1800)` spans exactly 6 future readings and excludes the current
+one. These windows are computed identically in training and inference, so the
+saved model is self-consistent.
 
 ---
 

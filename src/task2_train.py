@@ -132,6 +132,17 @@ def main() -> None:
     )
     labelled = labelled.select(*keep).na.drop()
 
+    # Temporal split by the row's own calendar year: train on years < test_year,
+    # test on test_year. KNOWN BOUNDARY CAVEAT: a row's `year` is the year of
+    # its OWN timestamp t, but its label sums rain over (t, t+30min]. For the
+    # handful of readings in the last 30 minutes of 31 Dec of a training year,
+    # the label therefore depends on a few observations from the following year
+    # (which may be the test year). This is a minor train->test leakage limited
+    # to <=5 boundary rows per station per year-boundary. It is baked into the
+    # already-materialised features and the saved GBT model, so it is documented
+    # rather than silently changed; a clean fix (dropping rows whose future
+    # window crosses the split date) would require regenerating features and
+    # retraining. See the "deferred corrections" note in the repair summary.
     train = labelled.filter(F.col("year") < args.test_year)
     test = labelled.filter(F.col("year") == args.test_year)
 

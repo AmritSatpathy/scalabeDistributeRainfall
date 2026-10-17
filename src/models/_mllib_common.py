@@ -8,6 +8,25 @@ is defined in exactly one place:
     VectorAssembler(base features + threshold + station_idx -> features_raw)
     [optional] MinMaxScaler(features_raw -> features)   # linear/neural/fm
     classifier(featuresCol = features | features_raw)
+
+IMPORTANT - station_idx is NOT encoded the same way for every model:
+
+  * Tree models (GBT, RandomForest; needs_scaling=False) consume `features_raw`
+    directly. StringIndexer attaches nominal (categorical) ML attribute
+    metadata to station_idx, and VectorAssembler propagates it, so the trees
+    can split on station identity CATEGORICALLY provided maxBins is >= the
+    station cardinality (the GBT uses maxBins=128 >= ~91 stations).
+
+  * Scaled models (LogisticRegression, LinearSVC, MLP, FMClassifier;
+    needs_scaling=True) pass the assembled vector - including station_idx -
+    through MinMaxScaler. Scaling drops the categorical metadata and maps the
+    integer index into [0, 1], so these models treat station identity as a
+    NUMERIC ORDINAL feature (an arbitrary ordering of stations), not a true
+    category.
+
+So the common claim "the pipeline treats station as categorical" is only true
+for the tree models. This difference is a known property of the comparison, not
+a defect; it does not affect the canonical saved GBT model.
 """
 from __future__ import annotations
 
