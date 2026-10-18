@@ -29,7 +29,7 @@ where \(R\) is a five-minute rainfall total and \(\mathcal{I}_{t}\) contains onl
 
 ## 2. Preliminary data inspection
 
-Only the first 100 records of `HistoricalRainfallacrossSingapore2017.csv` were inspected. Headers alone were compared across all eight annual files; no full dataset scan was performed.
+Only the first 100 records of `rainfall_2017.csv` were inspected. Headers alone were compared across all eight canonical annual files; no full dataset scan was performed.
 
 | Sample finding | Observed result | Planning implication |
 |---|---:|---|

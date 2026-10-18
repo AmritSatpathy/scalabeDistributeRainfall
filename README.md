@@ -1,331 +1,306 @@
-# Historical Rainfall across Singapore (2017–2024) — Spark Analysis & Prediction
+# Singapore Rainfall Analysis and Prediction
 
-Structured data processing and machine learning on Singapore's five-minute
-rainfall records using **Apache Spark (PySpark)**.
+**DSA5208 — Scalable Distributed Computing for Data Science**<br>
+National University of Singapore
 
-The project has two deliverables:
+This project uses Apache Spark and PySpark to analyse five-minute rainfall
+observations collected across Singapore from 2017 to 2024. It combines
+distributed data preparation, exploratory analysis, geospatial rainfall
+mapping, short-horizon rainfall prediction, and compute-configuration
+experiments.
 
-- **Task 1 — Explore weather patterns.** How rainfall varies *within* a year
-  (seasonal / diurnal cycles) and *across* the years 2017–2024, with figures
-  and tables.
-- **Task 2 — Predict rainfall.** A Spark MLlib model that estimates the
-  **probability that a station accumulates more than a given amount of rain in
-  the next 30 minutes**, given `(station, prediction time, threshold)`.
+The submission document is:
 
-It also includes a **distributed-computing + model-comparison benchmark**: the
-prediction task is run across **8 models** (6 Spark MLlib + PyTorch LSTM/TCN on
-GPU) and **5 Spark compute configurations** (single-process, two Spark
-Standalone layouts, two Docker clusters), comparing accuracy against
-training/prediction time. The final report is in
-[`report/REPORT.md`](report/REPORT.md).
+- [`output/Historical_Rainfall_Singapore_Report.docx`](output/Historical_Rainfall_Singapore_Report.docx)
 
-Companion docs: [`RATIONALE.md`](RATIONALE.md) explains *why* each design
-decision was made; the full write-up is in
-[`report/REPORT.md`](report/REPORT.md).
+[`output/Rainfall_Report_Gap_Analysis.md`](output/Rainfall_Report_Gap_Analysis.md)
+records the earlier report review and improvement plan.
 
----
+## Project scope
 
-## 1. Data
+The project addresses two tasks:
 
-Source: [data.gov.sg — Historical Rainfall across Singapore](https://data.gov.sg/collections/2279/view)
-(collection `2279`, National Environment Agency). Rainfall is reported per
-**5-minute interval in mm** at ~70–90 monitoring stations. All timestamps are
-Singapore Time (SGT).
+1. **Exploratory data analysis.** Describe rainfall variation across space,
+   years, months, monsoon seasons, hours of the day, and heavy-rain events.
+2. **Rainfall prediction.** Estimate whether rainfall accumulated during the
+   next 30 minutes will exceed a selected threshold for a station and
+   prediction time.
 
-Each yearly CSV has the columns:
+The submitted report presents the exploratory analysis in this order:
 
-```
+1. geospatial observation coverage and rainfall geography;
+2. interannual variation;
+3. monthly seasonality;
+4. diurnal variation; and
+5. heavy-rain station-days.
+
+The systems component compares Spark execution layouts and model behaviour.
+Results from a single physical machine are interpreted as deployment-overhead
+measurements rather than evidence of multi-machine scalability.
+
+## Data
+
+Source: [data.gov.sg — Historical Rainfall across Singapore](https://data.gov.sg/collections/2279/view),
+collection `2279`, published by Singapore's National Environment Agency.
+
+The annual CSV files contain five-minute rainfall observations and station
+metadata, including:
+
+```text
 date, timestamp, update_timestamp, station_id, station_name,
 station_device_id, location_longitude, location_latitude,
 reading_update_timestamp, reading_value, reading_type, reading_unit
 ```
 
-We use the annual datasets **2017–2024** (~7.8 GB of CSV, ~48.5 M cleaned rows).
+The 2017–2024 input is approximately 7.8 GB. The retained cleaned dataset used
+in the report contains 48,538,713 readings from 91 stations. Timestamps are
+interpreted in `Asia/Singapore`.
 
----
+## Repository structure
 
-## 2. Computing environment
-
-- **Local machine**, running everything under **WSL2 (Ubuntu)** on Windows.
-- 32 GB host RAM; WSL2 configured to expose 24 GB (see note below),
-  16 logical cores, ~900 GB free disk.
-- Python 3.12, OpenJDK 21, **PySpark 3.5.3** in `local[*]` mode
-  (single-node, all cores). Spark driver memory 20 GB for training.
-
-No cluster is required for the pipeline as shipped; it is tuned to run on one
-machine. Task 2 caps the training set (see `--max-train-rows`) so it fits in
-local memory.
-
-> **WSL2 memory note.** WSL2 defaults to ~50 % of host RAM, which was too tight
-> for the GBT fit. We raised it via `C:\Users\<you>\.wslconfig`:
-> ```ini
-> [wsl2]
-> memory=24GB
-> swap=8GB
-> processors=16
-> ```
-> then `wsl --shutdown` and reopen the terminal to apply.
-
----
-
-## 3. Project layout
-
-```
-rainTheFall/
+```text
+scalabeDistributeRainfall/
+├── assets/                         # NUS branding, author metadata and references
+├── cluster/                        # local Spark Standalone launch scripts
+├── data/
+│   ├── raw/                        # annual source CSV files
+│   ├── processed/                  # cleaned and feature Parquet datasets
+│   └── singapore_map_bounary/      # official planning-region GeoJSON
+├── docker/                         # Docker Spark configuration and sweep scripts
+├── models/                         # retained trained-model artifacts and metadata
+├── output/
+│   ├── Historical_Rainfall_Singapore_Report.docx
+│   ├── figures/
+│   │   └── geospatial/             # published geographic PNG figures
+│   ├── geojson/                    # generated geographic data layers
+│   ├── interactive/                # interactive Folium HTML maps
+│   ├── tables/                     # EDA, coverage and model-result tables
+│   └── runs/                       # timestamped, hashed run artifacts
 ├── src/
-│   ├── config.py               # paths, dataset ids, constants
-│   ├── spark_utils.py          # env-driven SparkSession (any compute tier)
-│   ├── download_data.py        # fetch yearly CSVs from data.gov.sg
-│   ├── clean_data.py           # -> data/processed/rainfall_clean (Parquet)
-│   ├── task1_explore.py        # Task 1 figures + tables
-│   ├── task2_features.py       # feature engineering (shared)
-│   ├── task2_build_features.py # materialise base features once (Parquet)
-│   ├── task2_train.py          # ORCHESTRATOR: --model X --compute Y (MLlib)
-│   ├── task2_predict.py        # inference for (station, time, threshold)
-│   ├── task2_deep.py           # deep (LSTM/TCN) runner on GPU
-│   ├── deep_dataset.py         # Spark builds sequence datasets for deep models
-│   ├── benchmark.py            # sweep models × compute configs
-│   ├── benchmark_plot.py       # benchmark figures (heatmaps, scaling, AUC)
-│   ├── models/                 # MODEL registry (one file per model)
-│   │   ├── gbt.py rf random_forest.py logreg.py linear_svc.py mlp.py fm.py
-│   │   └── lstm.py tcn.py       # PyTorch (GPU) sequence models
-│   └── compute/                # COMPUTE-CONFIG registry
-│       ├── local_configs.py standalone_configs.py
-│       └── docker_configs.py
-├── cluster/                    # local Spark Standalone launch scripts (E1)
-├── docker/                     # Dockerized Spark cluster (E2)
-├── data/{raw,processed}/       # CSVs + Parquet             (git-ignored)
-├── output/{figures,tables}/    # figures + metric/benchmark CSVs
-├── models/                     # trained GBT pipeline + LSTM/TCN .pt
-├── report/                     # REPORT.md (project report)
+│   ├── clean_data.py
+│   ├── task1_explore.py
+│   ├── build_spatiotemporal_features.py
+│   ├── geospatial/                 # all Task 1 map-generation scripts
+│   ├── task2_*.py                  # feature, training, evaluation and prediction tools
+│   ├── models/                     # model registry
+│   └── compute/                    # local, Standalone and Docker configurations
+├── SPATIOTEMPORAL_PIPELINE_RUNBOOK.md
+├── VALIDATED_EXPERIMENT_RUNBOOK.md
 ├── requirements.txt
-├── README.md
-└── RATIONALE.md                # why each design choice was made
+└── README.md
 ```
 
-Large artifacts (`data/raw`, `data/processed`, `.venv`, logs, `cluster/logs`)
-are **git-ignored** and regenerated by the scripts below.
+Large processed datasets, virtual environments, Spark logs, and immutable run
+directories are excluded from version control. Published report figures,
+tables, GeoJSON, and HTML maps are kept under `output/`.
 
----
+## Environment setup
 
-## 4. Setup
+Python, Java, and Spark must be available locally. The recorded report
+experiments used PySpark 3.5.3 and Java 21.
 
 ```bash
-# from the project root
+cd /path/to/scalabeDistributeRainfall
 python3 -m venv .venv
-./.venv/bin/pip install -r requirements.txt
+./.venv/bin/python -m pip install -r requirements.txt
+./.venv/bin/python -m playwright install chromium
 ```
 
-> `setuptools<81` is pinned because PySpark 3.5.x still imports the removed
-> `distutils` module under Python 3.12; the pinned setuptools provides it.
+`setuptools<81` is pinned because PySpark 3.5.x still imports `distutils` in
+some supported Python environments.
 
----
+### Basemap configuration
 
-## 5. How to run
+Folium maps can use OpenStreetMap without a key. CARTO-rendered map layers use
+a local configuration file that is intentionally excluded from Git:
 
-All commands are run from the project root with the venv Python.
+```json
+{
+  "carto": {
+    "api_key": "YOUR_CARTO_BASEMAP_KEY"
+  }
+}
+```
 
-### Step 1 — Download the data (2017–2024)
+Save this as `basemaps.local.json` in the project root. Do not commit API keys.
+Map attribution remains visible in HTML and PNG outputs.
+
+## Running the pipeline
+
+Run commands from the project root with the virtual-environment Python.
+
+### 1. Download or provide the annual data
 
 ```bash
-./.venv/bin/python src/download_data.py            # all years
-./.venv/bin/python src/download_data.py --years 2023 2024   # subset
+./.venv/bin/python src/download_data.py
 ```
 
-Files land in `data/raw/rainfall_<year>.csv`. Re-run with `--force` to
-re-download.
+The canonical raw filename is `data/raw/rainfall_<year>.csv`; this is the same
+contract used by the mainline branch and by `src/download_data.py`. Cleaning,
+modelling, and geospatial analysis all derive from these eight files. Do not
+keep a second copy under an alternative filename. Dataset identifiers for
+2017–2024 are recorded in `src/config.py`.
 
-### Step 2 — Clean into Parquet
+### 2. Clean and standardise the observations
 
 ```bash
 ./.venv/bin/python src/clean_data.py
-# smoke test on the first few days of each year:
-./.venv/bin/python src/clean_data.py --sample-days 3 --out data/processed/_smoke
 ```
 
-Produces `data/processed/rainfall_clean` (Parquet, partitioned by `year`) and
-`output/tables/stations.csv`.
+The cleaning stage parses Singapore timestamps, casts rainfall and coordinates
+to numeric values, rejects invalid readings, de-duplicates station-time rows,
+and resolves canonical station metadata. Its primary output is partitioned
+Parquet under `data/processed/rainfall_clean`.
 
-### Step 3 — Task 1: explore weather patterns
+For a small smoke run:
+
+```bash
+./.venv/bin/python src/clean_data.py \
+  --sample-days 3 \
+  --out data/processed/_smoke
+```
+
+### 3. Build the compact spatiotemporal feature dataset
+
+```bash
+./.venv/bin/python src/build_spatiotemporal_features.py
+```
+
+This stage retains a deliberately limited set of temporal and spatial
+features so it remains feasible on a single workstation. Progress is printed
+while Spark actions are running. Completed artifacts are registered under a
+timestamped directory in `output/runs/`.
+
+See [`SPATIOTEMPORAL_PIPELINE_RUNBOOK.md`](SPATIOTEMPORAL_PIPELINE_RUNBOOK.md)
+for the exact staged workflow and resume guidance.
+
+### 4. Generate the non-geographic EDA figures
 
 ```bash
 ./.venv/bin/python src/task1_explore.py
 ```
 
-Writes figures to `output/figures/` and tables to `output/tables/`:
-annual totals & trend, monthly heatmap & climatology, diurnal cycle (overall
-and by monsoon season), station map, wettest/driest stations, wet-intensity
-quantiles, and heavy-rain days.
+This produces annual, monthly, diurnal, monsoon, station-ranking, and
+heavy-rain summaries under `output/figures/` and `output/tables/`.
 
-### Step 4 — Task 2: build features, train, predict
+### 5. Generate the geospatial analysis
+
+All geographic scripts are located in `src/geospatial/`. Their detailed
+responsibilities are listed in
+[`src/geospatial/README.md`](src/geospatial/README.md).
+
+First generate the coverage-qualified station-month summaries:
 
 ```bash
-# 4a. Materialise the base feature table once (expensive windows computed here)
+./.venv/bin/python src/geospatial/task1_geospatial_choropleths.py \
+  --publish-legacy
+```
+
+Then generate the report maps. `--render-png` captures the interactive Folium
+maps with Playwright, and `--publish-legacy` copies the selected outputs to the
+stable `output/` directories used by the report.
+
+```bash
+# Active gauges, August 2017/2024, complete-year maps and change maps
+./.venv/bin/python src/geospatial/task1_august_geospatial_maps.py \
+  --monthly-summary output/tables/geo_station_month_summary.csv \
+  --render-png \
+  --publish-legacy
+
+# Comparable August maps for 2017, 2018, 2023 and 2024
+./.venv/bin/python src/geospatial/task1_august_year_maps.py \
+  --years 2017 2018 2023 2024 \
+  --render-png \
+  --publish-legacy
+
+# Long-period H3 mean monthly rainfall, 2017–2024
+./.venv/bin/python src/geospatial/task1_long_period_average_map.py \
+  --render-png \
+  --publish-legacy
+
+# Long-period official planning-region summary
+./.venv/bin/python src/geospatial/task1_region_monthly_choropleth.py \
+  --render-png \
+  --publish-legacy
+
+# August 2024 and complete-2024 planning-region maps
+./.venv/bin/python src/geospatial/task1_region_2024_choropleths.py \
+  --render-png \
+  --publish-legacy
+```
+
+The geospatial outputs are separated by artifact type:
+
+| Output | Location |
+|---|---|
+| Report-ready PNG maps | `output/figures/geospatial/` |
+| Interactive Folium maps | `output/interactive/` |
+| Generated geographic layers | `output/geojson/` |
+| Coverage and regional summaries | `output/tables/` |
+| Immutable execution record | `output/runs/<timestamp>_<task>_<hash>/` |
+
+The report uses four focused geographic views: active gauges in 2017 and
+2024, August 2017 versus August 2024, the 2017–2024 H3 mean monthly pattern,
+and the official planning-region summary for 2024.
+
+### 6. Task 2 model workflow
+
+The retained modelling scripts support temporal feature materialisation,
+Spark MLlib training, evaluation, and single-query prediction:
+
+```bash
 ./.venv/bin/python src/task2_build_features.py
-
-# 4b. Train + evaluate the model (temporal split: train < test-year)
 ./.venv/bin/python src/task2_train.py --model gbt --test-year 2024
-#   faster iteration on a subsample of base rows:
-./.venv/bin/python src/task2_train.py --model gbt --sample-fraction 0.2
-#   logistic-regression baseline (overwrites the saved model, so run the
-#   model you want to keep LAST):
-./.venv/bin/python src/task2_train.py --model logreg --test-year 2024
-
-# 4c. Predict a single query
 ./.venv/bin/python src/task2_predict.py \
-    --station S77 --time "2024-06-15T14:00:00" --threshold 1.0
+  --station S77 \
+  --time "2024-06-15T14:00:00" \
+  --threshold 1.0
 ```
 
-Training saves the fitted pipeline to `models/rainfall_model` and metrics to
-`models/model_metadata.json` + `output/tables/model_metrics_*.csv`.
+The canonical split trains on 2017–2023 and tests on 2024. Recent rainfall,
+rolling 30/60/180-minute history, time-of-day and month cycles, station
+identity, coordinates, and the query threshold form the model input. The
+current reading is excluded from the future 30-minute target.
 
-**Memory / scale controls for Task 2.** Treating the threshold as a feature
-multiplies the base rows by the number of candidate thresholds (5×), so the
-exploded training set can reach hundreds of millions of rows. To keep the GBT
-fit within a single machine:
+For controlled experiment commands, use
+[`VALIDATED_EXPERIMENT_RUNBOOK.md`](VALIDATED_EXPERIMENT_RUNBOOK.md). The
+report distinguishes retained results from proposed follow-up experiments.
 
-- `--max-train-rows N` (default `8_000_000`) uniformly downsamples the exploded
-  training rows; set `0` to disable (only sensible on a cluster).
-- `--sample-fraction F` subsamples base rows before the explode.
-- Training frames use `MEMORY_AND_DISK` persistence so Spark spills instead of
-  failing when memory is tight.
+## Analytical conventions
 
-### Step 5 — Benchmark study (models × compute configurations)
+- **Coverage normalisation:** station-month and region-month summaries are
+  used so growth in the observation network does not directly determine the
+  rainfall pattern.
+- **Sensor-supported geography:** H3 polygons are shown only where station
+  evidence exists. The maps do not interpolate a continuous rainfall surface
+  over ungauged land.
+- **Comparable map scales:** paired August maps use a shared colour scale.
+- **Regional weighting:** stations are averaged within a region-month and
+  qualifying months are then averaged with equal weight.
+- **Temporal evaluation:** prediction training precedes the held-out test
+  period; random row splitting is avoided for the canonical result.
+- **Single-host limitation:** Standalone and Docker layouts use separate Spark
+  processes but share the same physical CPU, memory, storage, and network.
 
-The project compares **8 models** across **compute configurations**, recording
-train time, predict time, and AUC. See models/configs with:
+## Run tracking and reproducibility
 
-```bash
-./.venv/bin/python src/task2_train.py --list
-```
+Pipeline stages create immutable directories under `output/runs/`. Each run
+records its timestamp, parameters, command, Git state, source hash, input
+fingerprints, host metadata, upstream artifacts, and output hashes. Published
+files under `output/figures`, `output/tables`, `output/geojson`, and
+`output/interactive` are convenient report copies; the corresponding run
+directory is the provenance record.
 
-**Models on a chosen config** (MLlib):
+The generated Folium HTML files embed their map configuration, so files that
+contain a credentialled tile URL should be treated as local artifacts.
 
-```bash
-# sweep all MLlib models on local[*]
-./.venv/bin/python src/benchmark.py --models gbt rf logreg linsvc mlp fm \
-    --computes local-all
-```
+## Related documentation
 
-**Deep models on GPU** (PyTorch LSTM / 1D-CNN):
-
-```bash
-./.venv/bin/python src/task2_deep.py --model lstm --epochs 8
-./.venv/bin/python src/task2_deep.py --model tcn  --epochs 8
-```
-
-**Spark Standalone cluster** (separate executor JVMs on the same host; see `cluster/README.md`):
-
-```bash
-cluster/start_standalone.sh 4 2 3g          # workers cores mem
-export SPARK_MASTER_URL=spark://localhost:7077
-./.venv/bin/python src/task2_train.py --model gbt --compute standalone-4x2 \
-    --no-save --sample-fraction 0.15 --max-train-rows 1000000
-cluster/stop_standalone.sh
-```
-
-**Dockerized Spark cluster** (see `docker/README.md`):
-
-```bash
-docker compose -f docker/docker-compose.yml up -d --build --scale spark-worker=2
-docker/run_sweep.sh docker-2w
-docker compose -f docker/docker-compose.yml down
-```
-
-**Figures** from the collected results:
-
-```bash
-./.venv/bin/python src/benchmark_plot.py               # model study
-./.venv/bin/python src/benchmark_plot.py \
-    --results output/tables/benchmark_compute.csv --suffix _compute  # compute study
-```
-
-**How to read the compute benchmark (important caveats).**
-
-- All configurations — `local[*]`, Spark Standalone, and Docker — run on **one
-  physical laptop**. The Standalone and Docker layouts use separate executor
-  *processes* / *containers* with real network shuffle, so they demonstrate
-  process-level distribution and its overhead, **not** multi-machine scale-out.
-  They do not add physical CPUs, memory, or network interfaces.
-- The resource settings shown (driver/executor memory, cores, shuffle
-  partitions) are **requested** Spark settings, not verified runtime
-  allocations. Docker Compose in particular does not impose hard CPU/memory
-  limits, so a worker's advertised cores/memory are requests.
-- **Docker benchmark rows:** training times are the measured values from the
-  sweep logs; the AUC values are reused from the corresponding runs (AUC is
-  configuration-invariant — the learning objective does not change with
-  deployment) and the predict times are approximate. Automatic result capture
-  from inside the container was affected by a WSL2 container-to-host write-back
-  limitation, so these rows were reconciled from logs rather than captured
-  automatically. See `docker/README.md`.
-- Because resources and sampled rows are not held exactly constant across
-  configurations, the timings are **descriptive observations**, not a
-  controlled estimate of deployment overhead.
-
-The written report is in [`report/REPORT.md`](report/REPORT.md).
-
-Example for a tighter machine: `--max-train-rows 4000000`.
-
-### Lightweight tests
-
-Fast synthetic tests (no full data, no retraining) that pin the temporal-window
-semantics and the saved-model input contract:
-
-```bash
-./.venv/bin/python tests/test_temporal_windows.py      # rolling/future window behaviour
-./.venv/bin/python tests/test_saved_model_contract.py  # saved GBT loads + feature-schema match
-```
-
-The window tests document that the look-back `rangeBetween(-1800, 0)` is
-inclusive of both endpoints (7 readings at 5-min cadence) while the future label
-`rangeBetween(1, 1800)` spans exactly 6 future readings and excludes the current
-one. These windows are computed identically in training and inference, so the
-saved model is self-consistent.
-
----
-
-## 6. Method summary
-
-> For the reasoning behind every decision below — why each cleaning rule, why
-> each Task 1 figure, why the threshold-as-feature framing, and why GBT — see
-> [`RATIONALE.md`](RATIONALE.md).
-
-**Cleaning.** Parse `timestamp` as SGT; cast `reading_value` to mm; drop null /
-negative / physically impossible (> 60 mm per 5 min) readings; de-duplicate on
-`(station_id, timestamp)` keeping the latest correction; resolve one canonical
-name + median coordinates per `station_id` (raw names alternate between the
-real name and the bare id).
-
-**Task 1.** All aggregation in Spark; only small summaries pulled to pandas for
-matplotlib. Per-station normalisation avoids bias from the growing station
-network.
-
-**Task 2.** The **threshold is a model input feature**, so a single model
-answers any threshold rather than one model per threshold. For each
-station-timestamp we build leakage-free features — cyclical hour/month,
-weekend & monsoon flags, station identity + location, and recent-rainfall
-context (rolling 30/60/180-min sums, last reading, minutes-since-rain) — and
-generate one labelled example per candidate threshold (default
-`0.2, 1, 2, 5, 10` mm). The label is whether the true next-30-min accumulation
-exceeds that threshold. Feature engineering is materialised **once** by
-`task2_build_features.py` to avoid recomputing the expensive per-station
-windows on every training action.
-
-Model: Gradient-Boosted Trees (with a Logistic Regression baseline) via a Spark
-ML `Pipeline` — `StringIndexer` (station identity kept as a single indexed
-categorical column; `maxBins ≥ #stations` so the tree can split on it) →
-`VectorAssembler` → classifier. Station location is also carried explicitly as
-`lat`/`lon`, so we deliberately **do not one-hot encode** stations (that made
-the GBT feature vectors wide and memory heavy). Evaluated with a **temporal**
-train/test split (train on earlier years, test on the most recent year),
-reporting AUC-ROC, AUC-PR, accuracy, F1, and per-threshold AUC.
-
----
-
-## 7. Reproducibility notes
-
-- Spark session time zone is pinned to `Asia/Singapore` so all timestamp math
-  matches the SGT source.
-- Random seeds are fixed for sampling and the classifiers.
-- The download step depends on data.gov.sg serving the 2017–2024 datasets in
-  collection `2279`; dataset ids are recorded in `src/config.py`.
+| Document | Purpose |
+|---|---|
+| [`project_assignment_guidelines.md`](project_assignment_guidelines.md) | Assignment requirements |
+| [`SPATIOTEMPORAL_PIPELINE_RUNBOOK.md`](SPATIOTEMPORAL_PIPELINE_RUNBOOK.md) | Current preprocessing and geospatial workflow |
+| [`VALIDATED_EXPERIMENT_RUNBOOK.md`](VALIDATED_EXPERIMENT_RUNBOOK.md) | Controlled temporal and systems experiment protocol |
+| [`TIME_SERIES_PREDICTION_PLAN.md`](TIME_SERIES_PREDICTION_PLAN.md) | Time-series modelling design |
+| [`RATIONALE.md`](RATIONALE.md) | Design decisions and interpretation |
+| [`output/Architecture_Diagram_Specification.md`](output/Architecture_Diagram_Specification.md) | Architecture figure specification |

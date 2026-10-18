@@ -4,8 +4,8 @@ Parquet dataset partitioned by year.
 
 Cleaning steps
 --------------
-1.  Read every raw CSV under data/raw with a fixed string schema (robust to
-    any stray formatting) and stamp the source year.
+1.  Read the canonical ``data/raw/rainfall_<year>.csv`` file for every
+    requested year with a fixed string schema and stamp the source year.
 2.  Parse ``timestamp`` as an SGT instant and derive calendar parts
     (year, month, day, hour, minute, day-of-week, date).
 3.  Cast ``reading_value`` to double (rainfall mm per 5-minute interval).
@@ -30,10 +30,8 @@ Usage
 from __future__ import annotations
 
 import argparse
-import glob
 import json
 import os
-import re
 import sys
 import threading
 import time
@@ -197,27 +195,24 @@ def driver_progress(label: str, interval_seconds: float = 5.0):
 
 
 def discover_raw_files(years) -> dict[int, str]:
-    """Find exactly one uploaded CSV for every requested year.
+    """Return the canonical ``rainfall_<year>.csv`` input for each year.
 
-    The data.gov.sg downloads in this project use both ``rainfall_2017.csv``
-    and ``HistoricalRainfallacrossSingapore2017.csv`` naming conventions.
-    Discovery by embedded four-digit year keeps ingestion independent of the
-    download filename while rejecting ambiguous duplicates.
+    ``download_data.py`` and the mainline branch use this filename contract.
+    Keeping one deterministic path per year prevents duplicate LFS objects and
+    ensures cleaning, modelling, and geospatial analysis share the same source.
     """
-    requested = set(int(y) for y in years)
-    matches: dict[int, list[str]] = {year: [] for year in requested}
-    for path in sorted(glob.glob(os.path.join(config.RAW_DIR, "*.csv"))):
-        years_in_name = {int(value) for value in re.findall(r"(?<!\d)(20\d{2})(?!\d)", os.path.basename(path))}
-        for year in years_in_name & requested:
-            matches[year].append(path)
-    missing = sorted(year for year, paths in matches.items() if not paths)
-    ambiguous = {year: paths for year, paths in matches.items() if len(paths) > 1}
+    requested = sorted(set(int(year) for year in years))
+    matches = {
+        year: os.path.join(config.RAW_DIR, f"rainfall_{year}.csv")
+        for year in requested
+    }
+    missing = [year for year, path in matches.items() if not os.path.isfile(path)]
     if missing:
-        raise FileNotFoundError(f"Missing raw CSVs for years: {missing} under {config.RAW_DIR}")
-    if ambiguous:
-        detail = "; ".join(f"{year}: {paths}" for year, paths in sorted(ambiguous.items()))
-        raise RuntimeError(f"More than one raw CSV matched a year; remove ambiguity: {detail}")
-    return {year: matches[year][0] for year in sorted(requested)}
+        expected = ", ".join(f"rainfall_{year}.csv" for year in missing)
+        raise FileNotFoundError(
+            f"Missing canonical raw CSVs under {config.RAW_DIR}: {expected}"
+        )
+    return matches
 
 
 def read_raw(spark, years) -> DataFrame:

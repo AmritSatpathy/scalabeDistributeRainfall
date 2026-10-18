@@ -30,6 +30,12 @@ EXPECTED_INTERVALS_PER_DAY = 24 * 60 // config.INTERVAL_MINUTES
 def partial_august_from_raw(path, year, daily_completeness):
     """Build a clearly flagged estimate when the source contains a partial August."""
     raw_path = Path(path).expanduser().resolve()
+    expected_name = f"rainfall_{year}.csv"
+    if raw_path.name != expected_name:
+        raise ValueError(
+            f"The partial raw source must use the canonical filename "
+            f"{expected_name}, received {raw_path.name}"
+        )
     if not raw_path.is_file():
         raise FileNotFoundError(f"Partial-year raw CSV does not exist: {raw_path}")
     columns = [
@@ -91,7 +97,10 @@ def main():
     parser.add_argument("--daily-completeness", type=float, default=0.90)
     parser.add_argument(
         "--partial-raw-csv",
-        help="Raw CSV used only for requested years missing from the monthly summary",
+        help=(
+            "Canonical data/raw/rainfall_<year>.csv used only when a requested "
+            "year is missing from the monthly summary"
+        ),
     )
     parser.add_argument("--basemap-config", default=str(DEFAULT_BASEMAP_CONFIG))
     parser.add_argument("--render-png", action="store_true")
