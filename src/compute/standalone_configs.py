@@ -20,14 +20,6 @@ _MASTER = os.environ.get("SPARK_MASTER_URL", "spark://localhost:7077")
 # have" and the app hangs. We use 2g executors and start workers with 3g.
 CONFIGS = [
     ComputeConfig(
-        name="standalone-2x2-matched",
-        master=_MASTER,
-        description="Matched benchmark: 2 executors x 2 cores, 2 GB each, 32 shuffle partitions",
-        driver_memory="4g", executor_memory="2g", executor_cores=2,
-        executor_instances=2, shuffle_partitions=32,
-        launch_hint="cluster/start_standalone.sh 2 2 3g",
-    ),
-    ComputeConfig(
         name="standalone-2x2",
         master=_MASTER,
         description="Standalone: 2 executors x 2 cores",

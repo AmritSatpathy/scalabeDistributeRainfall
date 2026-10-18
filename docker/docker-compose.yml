@@ -26,8 +26,6 @@ services:
     ports:
       - "8080:8080"   # master web UI
       - "7077:7077"   # master RPC
-    cpus: "4.0"
-    mem_limit: 6g
     volumes:
       - ..:/project
 
@@ -42,7 +40,5 @@ services:
       spark-class org.apache.spark.deploy.worker.Worker
       --cores 2 --memory 3g --work-dir /tmp/spark-work
       spark://spark-master:7077
-    cpus: "2.0"
-    mem_limit: 3g
     volumes:
       - ..:/project
