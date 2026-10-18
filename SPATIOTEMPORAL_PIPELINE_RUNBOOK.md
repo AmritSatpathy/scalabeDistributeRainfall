@@ -1,11 +1,11 @@
-# Spatiotemporal Processing and Task 1 EDA Runbook
+# Geospatial Rainfall Processing Runbook
 
 Run these commands sequentially from a terminal. Each processing stage creates an immutable timestamped directory under `output/runs`, records its parameters and hashes, and updates a latest-successful-run pointer. The commands use full content hashes.
 
 ## 1. Enter the project and install dependencies
 
 ```bash
-cd /Users/whitetiger/Desktop/WhiteTiger/17_projects/21_Rainfall/scalabeDistributeRainfall
+cd /path/to/scalabeDistributeRainfall
 python3 -m venv .venv
 ./.venv/bin/pip install -r requirements.txt
 ```
@@ -48,13 +48,11 @@ Reads the latest complete clean run and materialises a Parquet feature table con
 - rolling sum, maximum, wet fraction and coverage over 30 minutes, 3 hours and 24 hours;
 - recent 30-minute intensity change and current wet/dry state;
 - cyclic time, day-of-year, weekday and monsoon-regime features;
-- an exact, completeness-qualified next-30-minute outcome for later Task 2 work.
+- an exact, completeness-qualified next-30-minute outcome for storm evolution maps.
 
-Training-only station/month/hour climatology is intentionally deferred to the temporal model-fitting stage. Computing it once from all years would leak validation and test history into model features.
+The recommended `minimal` profile keeps the features needed by the selected geospatial figures. Station histories are partitioned by station and year, making each window task much smaller; the first 24 hours and final 30 minutes of each station-year naturally carry incomplete coverage/outcome indicators. Features are calculated on the full five-minute sequence, after which only 15-minute analysis origins are retained. This reduces the written contexts by approximately two thirds without corrupting the rolling windows.
 
-The recommended `minimal` profile keeps the features needed by the selected Task 1 figures and a concise temporal Task 2 baseline. Station histories are partitioned by station and year, making each window task much smaller; the first 24 hours and final 30 minutes of each station-year naturally carry incomplete coverage/outcome indicators. Features are calculated on the full five-minute sequence, after which only 15-minute forecast origins are retained. This reduces the written contexts and downstream training work by approximately two thirds without corrupting the rolling windows.
-
-Expensive distant-lag, long-state, wet-spell and nearest-station calculations are reserved for later ablations. The scalable-computing experiment should compare controlled execution resources using this stable feature table rather than making feature construction itself unnecessarily large.
+Expensive distant-lag, long-state, wet-spell and nearest-station calculations are optional extensions rather than requirements for the published maps.
 
 The table is partitioned by year and month and distributed across station buckets to avoid very large output tasks. The machine-readable feature contract is stored with the run. The immutable run artifact is consumed automatically by Step 4, so a duplicate `--publish-legacy` copy is unnecessary.
 

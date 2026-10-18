@@ -7,9 +7,3 @@ h3>=4.1,<5
 folium>=0.17,<1
 playwright>=1.48,<2
 numpy>=1.26,<2
-
-# Deep-learning models (Phase 1b: LSTM / TCN on GPU).
-# Install the CUDA build matched to your driver, e.g.:
-#   pip install torch --index-url https://download.pytorch.org/whl/cu124
-# CPU-only also works (slower): pip install torch
-torch>=2.2

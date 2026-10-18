@@ -2,7 +2,7 @@
 
 This stage reads the combined cleaned observations, computes temporal and
 geospatial features once in Spark, and writes immutable Parquet partitioned by
-year and month. It does not train a model or create report figures.
+year and month for the lagged storm and antecedent-condition maps.
 """
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ FEATURE_PROFILES = {
         "include_persistence": True,
         "partition_by_year": True,
     },
-    # Research ablation profile. Run only after the core model is established.
+    # Research extension profile with every available temporal feature.
     "full": {
         "exact_lags_minutes": sf.EXACT_LAGS_MINUTES,
         "rolling_windows_minutes": sf.ROLLING_WINDOWS_MINUTES,
@@ -146,7 +146,7 @@ def main() -> None:
     )
     # Compute histories on the full five-minute series, then retain fewer
     # forecast origins. This preserves feature correctness while reducing the
-    # written dataset and all downstream model work by stride/5.
+    # written dataset and downstream geographic analysis by stride/5.
     temporal = temporal.filter(
         F.pmod(F.minute("ts"), F.lit(args.forecast_stride_minutes)) == 0
     )
@@ -209,7 +209,7 @@ def main() -> None:
         "include_persistence": profile["include_persistence"],
         "series_partition_columns": series_partition_columns,
         "forecast_stride_minutes": args.forecast_stride_minutes,
-        "model_feature_columns": sf.model_feature_columns(
+        "analysis_feature_columns": sf.analysis_feature_columns(
             exact_lags_minutes=profile["exact_lags_minutes"],
             rolling_windows_minutes=profile["rolling_windows_minutes"],
             long_state_days=profile["long_state_days"],

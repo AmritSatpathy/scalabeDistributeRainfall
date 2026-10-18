@@ -379,7 +379,7 @@ SPATIAL_FEATURE_COLUMNS = [
     "north_south_gradient_mm",
 ]
 
-MODEL_FEATURE_COLUMNS = (
+ANALYSIS_FEATURE_COLUMNS = (
     ["lat", "lon", "rain_mm"]
     + CALENDAR_FEATURE_COLUMNS
     + EXACT_LAG_FEATURE_COLUMNS
@@ -394,7 +394,7 @@ MODEL_FEATURE_COLUMNS = (
 )
 
 
-def model_feature_columns(
+def analysis_feature_columns(
     exact_lags_minutes=EXACT_LAGS_MINUTES,
     rolling_windows_minutes=ROLLING_WINDOWS_MINUTES,
     long_state_days=LONG_STATE_DAYS,
@@ -402,7 +402,7 @@ def model_feature_columns(
     include_persistence: bool = True,
     include_neighbours: bool = False,
 ) -> list[str]:
-    """Return the model columns created by a selected feature profile."""
+    """Return the analysis columns created by a selected feature profile."""
     exact = [
         item
         for minutes in exact_lags_minutes

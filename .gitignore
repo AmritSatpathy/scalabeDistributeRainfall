@@ -14,8 +14,6 @@ data/_spark_tmp/
 spark-warehouse/
 metastore_db/
 derby.log
-cluster/logs/
-cluster/pids/
 output/runs/
 
 # Local service credentials. Generated Folium HTML embeds the CARTO key.
@@ -28,4 +26,4 @@ Thumbs.db
 # --- Spark writes hidden CRC checksum files next to Parquet/model parts ---
 .*.crc
 
-# Keep: src/, output/ (figures+tables), models/, report/, README, requirements
+# Published geospatial figures, tables, GeoJSON and HTML remain tracked.

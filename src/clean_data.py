@@ -197,9 +197,9 @@ def driver_progress(label: str, interval_seconds: float = 5.0):
 def discover_raw_files(years) -> dict[int, str]:
     """Return the canonical ``rainfall_<year>.csv`` input for each year.
 
-    ``download_data.py`` and the mainline branch use this filename contract.
-    Keeping one deterministic path per year prevents duplicate LFS objects and
-    ensures cleaning, modelling, and geospatial analysis share the same source.
+    ``download_data.py`` uses this filename contract. Keeping one deterministic
+    path per year prevents duplicate LFS objects and ensures every geographic
+    analysis shares the same source.
     """
     requested = sorted(set(int(year) for year in years))
     matches = {

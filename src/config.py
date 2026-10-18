@@ -1,5 +1,5 @@
 """
-Central configuration for the Singapore Historical Rainfall project.
+Central configuration for the Singapore rainfall geospatial analysis.
 
 All paths are resolved relative to the project root so the scripts work
 regardless of the current working directory.
@@ -22,9 +22,6 @@ FIGURES_DIR = os.path.join(OUTPUT_DIR, "figures")
 GEOSPATIAL_FIGURES_DIR = os.path.join(FIGURES_DIR, "geospatial")
 TABLES_DIR = os.path.join(OUTPUT_DIR, "tables")
 RUNS_DIR = os.path.join(OUTPUT_DIR, "runs")
-
-MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
-REPORT_DIR = os.path.join(PROJECT_ROOT, "report")
 
 # The cleaned dataset (Parquet, partitioned by year)
 CLEAN_PARQUET = os.path.join(PROCESSED_DIR, "rainfall_clean")
@@ -55,7 +52,7 @@ POLL_DOWNLOAD_URL = (
 # ---------------------------------------------------------------------------
 # Rainfall is reported in mm accumulated over each 5-minute interval.
 INTERVAL_MINUTES = 5
-# Prediction horizon for Task 2 (minutes).
+# Forward horizon used by storm-footprint feature frames (minutes).
 HORIZON_MINUTES = 30
 # Number of 5-minute steps in the horizon.
 HORIZON_STEPS = HORIZON_MINUTES // INTERVAL_MINUTES  # 6
@@ -70,7 +67,5 @@ def ensure_dirs() -> None:
         GEOSPATIAL_FIGURES_DIR,
         TABLES_DIR,
         RUNS_DIR,
-        MODELS_DIR,
-        REPORT_DIR,
     ):
         os.makedirs(d, exist_ok=True)

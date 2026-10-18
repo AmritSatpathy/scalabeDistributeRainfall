@@ -121,7 +121,6 @@ class RunContext:
             "code": {
                 "src": fingerprint(Path(config.PROJECT_ROOT) / "src", "full"),
                 "requirements": fingerprint(Path(config.PROJECT_ROOT) / "requirements.txt", "full"),
-                "docker_compose": fingerprint(Path(config.PROJECT_ROOT) / "docker" / "docker-compose.yml", "full"),
             },
             "inputs": {},
             "artifacts": {},

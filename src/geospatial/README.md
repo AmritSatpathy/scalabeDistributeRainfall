@@ -3,9 +3,9 @@
 All Task 1 map-generation code is kept in this directory. Run scripts from the
 project root with the virtual-environment Python.
 
-All maps derive from the same cleaned Parquet dataset used by the modelling
-pipeline. That dataset is built exclusively from the canonical annual raw
-files `data/raw/rainfall_<year>.csv`; no separate geospatial copy is required.
+All maps derive from one cleaned Parquet dataset built exclusively from the
+canonical annual files `data/raw/rainfall_<year>.csv`; no duplicate input copy
+is required.
 
 | Script | Purpose |
 |---|---|
