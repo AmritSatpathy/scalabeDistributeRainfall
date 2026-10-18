@@ -33,7 +33,6 @@ choropleths.
 | Annual comparison | Complete-year 2017 and 2024 maps and the 2024-minus-2017 change |
 | Long-period pattern | Average monthly rainfall across 2017–2024 |
 | Hotspots and anomalies | Coverage-qualified H3 comparisons across time baselines |
-| Storm evolution | Lagged rainfall footprint and antecedent accumulation maps |
 | Planning regions | Long-period, August 2024, and complete-2024 regional choropleths |
 | Interactive inspection | Folium HTML maps with selectable layers and tooltips |
 
@@ -47,7 +46,7 @@ academic report.
 scalabeDistributeRainfall/
 ├── data/
 │   ├── raw/                        # rainfall_2017.csv ... rainfall_2024.csv
-│   ├── processed/                  # generated clean/feature Parquet
+│   ├── processed/                  # generated clean Parquet
 │   └── singapore_map_bounary/      # Singapore planning-region GeoJSON
 ├── output/
 │   ├── figures/geospatial/         # publication-ready PNG maps
@@ -58,14 +57,11 @@ scalabeDistributeRainfall/
 ├── src/
 │   ├── download_data.py
 │   ├── clean_data.py
-│   ├── build_spatiotemporal_features.py
-│   ├── spatiotemporal_features.py
 │   ├── config.py
 │   ├── spark_utils.py
 │   ├── progress_utils.py
 │   ├── run_artifacts.py
 │   └── geospatial/                 # all map-generation scripts
-├── SPATIOTEMPORAL_PIPELINE_RUNBOOK.md
 ├── requirements.txt
 └── README.md
 ```
@@ -166,38 +162,7 @@ This produces the partitioned `data/processed/rainfall_clean` dataset and
 audits timestamp alignment, invalid readings, duplicates, cadence gaps, station
 coordinates, and device history.
 
-### 4. Build reusable spatiotemporal features
-
-```bash
-./.venv/bin/python src/build_spatiotemporal_features.py \
-  --profile minimal \
-  --forecast-stride-minutes 15 \
-  --wet-threshold-mm 0 \
-  --shuffle-partitions 192 \
-  --output-partitions 96 \
-  --station-buckets 4 \
-  --hash-mode metadata
-```
-
-The compact profile creates exact lags, rolling rainfall summaries, coverage
-indicators, temporal cycles, intensity change, and a 30-minute storm-outcome
-window. These features support the lagged storm and antecedent-condition maps.
-
-### 5. Generate the feature-aware geographic figures
-
-```bash
-./.venv/bin/python src/geospatial/task1_geospatial.py \
-  --daily-completeness 0.90 \
-  --h3-resolution 7 \
-  --minimum-event-stations 20 \
-  --hash-mode metadata \
-  --publish-legacy
-```
-
-This stage creates the network-continuity, seasonal-geography, multi-baseline
-anomaly, storm-footprint, and antecedent-intensification figures.
-
-### 6. Build the common station-month table and H3 comparisons
+### 4. Build the common station-month table and H3 comparisons
 
 ```bash
 ./.venv/bin/python src/geospatial/task1_geospatial_choropleths.py \
@@ -210,7 +175,7 @@ anomaly, storm-footprint, and antecedent-intensification figures.
 The published `output/tables/geo_station_month_summary.csv` is reused by all
 remaining scripts, avoiding repeated Spark aggregation.
 
-### 7. Render gauge, August, annual, and change maps
+### 5. Render gauge, August, annual, and change maps
 
 ```bash
 ./.venv/bin/python src/geospatial/task1_august_geospatial_maps.py \
@@ -225,7 +190,7 @@ remaining scripts, avoiding repeated Spark aggregation.
   --publish-legacy
 ```
 
-### 8. Render long-period and planning-region maps
+### 6. Render long-period and planning-region maps
 
 ```bash
 ./.venv/bin/python src/geospatial/task1_long_period_average_map.py \
@@ -254,12 +219,10 @@ The planning-region scripts use
 `data/singapore_map_bounary/MasterPlan2019RegionBoundaryNoSeaGEOJSON.geojson`.
 The directory name retains the source repository's existing spelling.
 
-### 9. Inspect the tracked runs
+### 7. Inspect the tracked runs
 
 ```bash
 ./.venv/bin/python src/run_artifacts.py --latest clean
-./.venv/bin/python src/run_artifacts.py --latest spatiotemporal_features
-./.venv/bin/python src/run_artifacts.py --latest task1_geospatial
 ./.venv/bin/python src/run_artifacts.py --latest task1_geo_choropleths
 ./.venv/bin/python src/run_artifacts.py --latest task1_august_geo
 ./.venv/bin/python src/run_artifacts.py --latest task1_long_period_average
@@ -289,7 +252,6 @@ used.
 | Artifact | Location |
 |---|---|
 | Clean observations | `data/processed/rainfall_clean/` |
-| Spatiotemporal features | Latest tracked run under `output/runs/` |
 | Geographic PNG maps | `output/figures/geospatial/` |
 | Interactive Folium maps | `output/interactive/` |
 | H3 and region layers | `output/geojson/` |
@@ -314,8 +276,5 @@ files under `output/figures/geospatial`, `output/interactive`,
   qualifying months then receive equal weight.
 - **Local time:** timestamp processing is fixed to `Asia/Singapore`.
 
-Detailed feature definitions and the optional nearest-neighbour extension are
-documented in
-[`SPATIOTEMPORAL_PIPELINE_RUNBOOK.md`](SPATIOTEMPORAL_PIPELINE_RUNBOOK.md).
 The individual map scripts are summarised in
 [`src/geospatial/README.md`](src/geospatial/README.md).

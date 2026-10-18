@@ -9,7 +9,6 @@ is required.
 
 | Script | Purpose |
 |---|---|
-| `task1_geospatial.py` | Coverage-safe H3, seasonal, anomaly and storm-event figures |
 | `task1_geospatial_choropleths.py` | Focused H3 comparisons and layered inspection map |
 | `task1_august_geospatial_maps.py` | 2017/2024 rainfall and active-gauge maps |
 | `task1_august_year_maps.py` | Comparable August maps for selected years |

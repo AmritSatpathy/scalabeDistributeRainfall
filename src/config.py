@@ -52,10 +52,6 @@ POLL_DOWNLOAD_URL = (
 # ---------------------------------------------------------------------------
 # Rainfall is reported in mm accumulated over each 5-minute interval.
 INTERVAL_MINUTES = 5
-# Forward horizon used by storm-footprint feature frames (minutes).
-HORIZON_MINUTES = 30
-# Number of 5-minute steps in the horizon.
-HORIZON_STEPS = HORIZON_MINUTES // INTERVAL_MINUTES  # 6
 
 
 def ensure_dirs() -> None:
