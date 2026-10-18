@@ -3,7 +3,7 @@
 This document explains *why* each choice was made in the pipeline: the data
 handling, the cleaning rules, each Task 1 visualisation, the feature design,
 and the Task 2 model. It complements the `README.md` (which says *how* to run)
-and `PROGRESS.md` (which says *what* is done).
+and the final `report/REPORT.md` (which presents the results).
 
 ---
 

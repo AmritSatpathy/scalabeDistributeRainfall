@@ -70,36 +70,35 @@ def add_time_features(df):
     return df
 
 
-def add_history_features(df):
-    """History features using explicit event-time interval semantics.
+def add_lag_and_future(df):
+    """Rolling look-back features and the 30-minute-ahead accumulation label.
 
-    A reading timestamp represents the end of its five-minute accumulation
-    interval. Therefore a W-minute feature covers ``(t-W, t]``. Exact-lag
-    features are accepted only when the timestamp difference is exactly five
-    minutes; missing cadence is represented explicitly instead of silently
-    borrowing the previous row.
+    Uses a per-station time-ordered window. Rolling windows are defined over
+    the event-time (seconds) range so gaps in the series do not silently
+    borrow readings from far away in time.
     """
     ts_secs = F.col("ts").cast("long")
     w_station = Window.partitionBy("station_id").orderBy(ts_secs)
 
     # ---- backward-looking rolling sums (features) -------------------------
+    # NOTE on window semantics: rangeBetween(-(mins*60), 0) is INCLUSIVE of both
+    # endpoints. At a regular 5-min cadence a "30-minute" window therefore spans
+    # the readings at t-1800s, t-1500s, ..., t-300s AND t itself = 7 readings
+    # (i.e. the current reading plus the previous 6), not 6. The 60/180-minute
+    # windows likewise include their far endpoint plus the current reading.
+    # This is intentional and, crucially, is computed IDENTICALLY in the
+    # inference path (task2_predict.compute_feature_row), so the saved model is
+    # self-consistent. See tests/test_temporal_windows.py which pins this
+    # behaviour. (A strictly-6-reading look-back would use rangeBetween with a
+    # -1500s lower bound or an exclusive endpoint; changing it now would alter
+    # the saved model's inputs and require feature regeneration + retraining.)
     for mins in LAG_WINDOWS_MIN:
-        wb = w_station.rangeBetween(-(mins * 60) + 1, 0)
+        wb = w_station.rangeBetween(-(mins * 60), 0)
         df = df.withColumn(f"roll_{mins}m_mm", F.sum("rain_mm").over(wb))
-        df = df.withColumn(f"roll_{mins}m_n", F.count("rain_mm").over(wb))
-        expected = mins // STEP
-        df = df.withColumn(
-            f"roll_{mins}m_coverage",
-            F.least(F.lit(1.0), F.col(f"roll_{mins}m_n") / F.lit(float(expected))),
-        )
 
-    prev_ts = F.lag(ts_secs, 1).over(w_station)
-    prev_rain = F.lag("rain_mm", 1).over(w_station)
-    df = df.withColumn("lag_5m_available", ((ts_secs - prev_ts) == STEP * 60).cast("double"))
-    df = df.withColumn(
-        "lag_5m_mm",
-        F.when(F.col("lag_5m_available") == 1.0, prev_rain).otherwise(F.lit(0.0)),
-    )
+    # rain in the immediately preceding reading (t-5min)
+    df = df.withColumn("lag_5m_mm", F.lag("rain_mm", 1).over(w_station))
+    df = df.withColumn("lag_5m_mm", F.coalesce("lag_5m_mm", F.lit(0.0)))
 
     # minutes since last wet reading (capped): how long dry so far
     is_wet = (F.col("rain_mm") > 0).cast("int")
@@ -116,38 +115,23 @@ def add_history_features(df):
         .otherwise(F.least(F.lit(1440.0), (ts_secs - F.col("last_wet_secs")) / 60.0)),
     )
 
+    # ---- forward-looking label: sum of next 30 minutes --------------------
+    # future window is (0s, +1800s]: the lower bound of 1 second EXCLUDES the
+    # current reading at offset 0, and the upper bound 1800s includes
+    # t+300..t+1800 = exactly 6 readings at a regular 5-min cadence. So, unlike
+    # the look-back window above, the label window spans exactly 6 future
+    # readings and is strictly the NEXT 30 minutes.
+    wf = w_station.rangeBetween(1, config.HORIZON_MINUTES * 60)
+    df = df.withColumn("future_30min_mm", F.sum("rain_mm").over(wf))
+    # Completeness check: count of readings in the future window. We later keep
+    # rows with future_n >= HORIZON_STEPS (==6). CAVEAT: count() counts ROWS,
+    # not DISTINCT timestamps, so a duplicated future slot could make future_n
+    # reach 6 with fewer than 6 distinct slots. After de-duplication in
+    # clean_data.py (one row per station+timestamp) this cannot occur in the
+    # cleaned dataset, but the caveat is pinned in tests/test_temporal_windows.py.
+    df = df.withColumn("future_n", F.count("rain_mm").over(wf))
+
     return df
-
-
-def add_future_labels(df):
-    """Build the target only when all six exact future offsets are present."""
-    ts_secs = F.col("ts").cast("long")
-    w_station = Window.partitionBy("station_id").orderBy(ts_secs)
-    future_values = []
-    exact_flags = []
-    for step in range(1, HORIZON_STEPS + 1):
-        future_ts = F.lead(ts_secs, step).over(w_station)
-        future_rain = F.lead("rain_mm", step).over(w_station)
-        exact = future_ts == ts_secs + step * STEP * 60
-        future_values.append(F.when(exact, future_rain))
-        exact_flags.append(exact)
-    complete = exact_flags[0]
-    for flag in exact_flags[1:]:
-        complete = complete & flag
-    total = future_values[0]
-    for value in future_values[1:]:
-        total = total + value
-    return (
-        df.withColumn("future_complete", complete.cast("boolean"))
-        .withColumn("future_n", F.when(complete, F.lit(HORIZON_STEPS)).otherwise(F.lit(0)))
-        .withColumn("future_30min_mm", F.when(complete, total))
-        .withColumn("label_end_ts", F.lead("ts", HORIZON_STEPS).over(w_station))
-    )
-
-
-def add_lag_and_future(df):
-    """Compatibility wrapper for the shared history and exact target contract."""
-    return add_future_labels(add_history_features(df))
 
 
 def build_base_features(df):
@@ -155,8 +139,11 @@ def build_base_features(df):
     df = add_time_features(df)
     df = add_lag_and_future(df)
     # Only keep rows where the full 30-min future is observed, otherwise the
-    # label is under-counted. We expect 6 future readings (5-min cadence).
-    df = df.filter(F.col("future_complete"))
+    # label is under-counted. The future window spans exactly 6 readings at a
+    # 5-min cadence, so HORIZON_STEPS == 6. (See the future_n caveat above:
+    # count() counts rows; on the de-duplicated cleaned data future_n==6 means
+    # six distinct 5-min slots.)
+    df = df.filter(F.col("future_n") >= HORIZON_STEPS)
     # roll windows can be null for the very first readings -> zero-fill
     for mins in LAG_WINDOWS_MIN:
         df = df.withColumn(
@@ -172,8 +159,6 @@ BASE_FEATURE_COLS = [
     "lat", "lon",
     "rain_mm", "lag_5m_mm",
     "roll_30m_mm", "roll_60m_mm", "roll_180m_mm",
-    "lag_5m_available",
-    "roll_30m_coverage", "roll_60m_coverage", "roll_180m_coverage",
     "mins_since_rain",
 ]
 

@@ -1,0 +1,90 @@
+{
+  "model_kind": "linsvc",
+  "model_description": "Linear SVC (linear max-margin; no native probability)",
+  "horizon_minutes": 30,
+  "base_feature_cols": [
+    "hour_sin",
+    "hour_cos",
+    "month_sin",
+    "month_cos",
+    "is_weekend",
+    "ne_monsoon",
+    "sw_monsoon",
+    "lat",
+    "lon",
+    "rain_mm",
+    "lag_5m_mm",
+    "roll_30m_mm",
+    "roll_60m_mm",
+    "roll_180m_mm",
+    "mins_since_rain"
+  ],
+  "uses_threshold_as_feature": true,
+  "train_thresholds": [
+    0.2,
+    1.0,
+    2.0,
+    5.0,
+    10.0
+  ],
+  "test_year": 2024,
+  "train_years": [
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023
+  ],
+  "max_train_rows": 8000000,
+  "sample_fraction": 1.0,
+  "compute_config": "local[*]",
+  "n_train": 7997496,
+  "n_test": 31872380,
+  "train_secs": 43.04,
+  "predict_secs": 50.76,
+  "metrics_overall": {
+    "auc_roc": 0.8735921973731074,
+    "auc_pr": 0.4666544310267074,
+    "accuracy": 0.9818523122528032,
+    "f1": 0.975951352855477
+  },
+  "metrics_by_threshold": [
+    {
+      "threshold": 0.2,
+      "auc_roc": 0.7671299109349187,
+      "auc_pr": 0.5772706606663637,
+      "accuracy": 0.9563178212609162,
+      "f1": 0.9391210018884758
+    },
+    {
+      "threshold": 1.0,
+      "auc_roc": 0.812062945473334,
+      "auc_pr": 0.5422839946892297,
+      "accuracy": 0.9783194728476505,
+      "f1": 0.9710353274796694
+    },
+    {
+      "threshold": 2.0,
+      "auc_roc": 0.8109327850934988,
+      "auc_pr": 0.4830899792802079,
+      "accuracy": 0.986194943709883,
+      "f1": 0.9822766990558398
+    },
+    {
+      "threshold": 5.0,
+      "auc_roc": 0.8141573384314782,
+      "auc_pr": 0.3857676755794212,
+      "accuracy": 0.9926624557061632,
+      "f1": 0.9913071731178653
+    },
+    {
+      "threshold": 10.0,
+      "auc_roc": 0.8292289805641488,
+      "auc_pr": 0.28954861395716036,
+      "accuracy": 0.9957668677394033,
+      "f1": 0.9954802611072835
+    }
+  ]
+}
